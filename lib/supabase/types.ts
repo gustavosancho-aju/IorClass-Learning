@@ -47,6 +47,7 @@ export type Database = {
           updated_at:   string
         }
         Insert: {
+          id?:          string        // allow pre-generated UUID for storage path coordination
           title:        string
           description?: string | null
           cover_emoji?: string
