@@ -10,8 +10,8 @@
 
 export const runtime = 'edge'
 
-const DEFAULT_VOICE    = '21m00Tcm4TlvDq8ikWAM' // Rachel — natural, clear English
-const MAX_TEXT_LENGTH  = 1000
+const FALLBACK_VOICE  = '21m00Tcm4TlvDq8ikWAM' // Rachel — fallback se ELEVENLABS_VOICE_ID não definido
+const MAX_TEXT_LENGTH = 1000
 
 export async function POST(request: Request) {
   /* ── 1. Parse + validate ─────────────────────────────────────── */
@@ -22,7 +22,9 @@ export async function POST(request: Request) {
     return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400 })
   }
 
-  const { text, voice = DEFAULT_VOICE } = body
+  // Voice priority: request body → env var → hardcoded fallback
+  const envVoice = process.env.ELEVENLABS_VOICE_ID
+  const { text, voice = envVoice ?? FALLBACK_VOICE } = body
 
   if (!text || typeof text !== 'string' || text.trim().length === 0) {
     return new Response(JSON.stringify({ error: 'text is required' }), { status: 400 })
@@ -35,7 +37,7 @@ export async function POST(request: Request) {
     )
   }
 
-  const voiceId = typeof voice === 'string' ? voice : DEFAULT_VOICE
+  const voiceId = typeof voice === 'string' ? voice : (envVoice ?? FALLBACK_VOICE)
 
   /* ── 2. Proxy to Eleven Labs ─────────────────────────────────── */
   const apiKey = process.env.ELEVENLABS_API_KEY

@@ -10,9 +10,10 @@
  *              | { error: string }
  */
 
-import { NextResponse }       from 'next/server'
-import { createClient }       from '@/lib/supabase/server'
-import { parsePptx }          from '@/lib/ppt-parser'
+import { NextResponse }          from 'next/server'
+import { createClient }          from '@/lib/supabase/server'
+import { createAdminClient }     from '@/lib/supabase/admin'
+import { parsePptx }             from '@/lib/ppt-parser'
 import { generateModuleContent } from '@/lib/content-generator'
 
 // Standard Node.js runtime (needs Buffer + JSZip — no edge compat)
@@ -27,15 +28,17 @@ export async function POST(request: Request) {
     }
     const { pptUploadId } = body as { pptUploadId: string }
 
-    /* ── 2. Auth check ──────────────────────────────────────────── */
-    const supabase = createClient()
+    /* ── 2. Auth check (user client — respeita RLS) ─────────────── */
+    const supabase      = createClient()        // anon key — para verificar sessão
+    const supabaseAdmin = createAdminClient()   // service role — para escrita
+
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    /* ── 3. Fetch ppt_uploads record ────────────────────────────── */
-    const { data: upload, error: uploadFetchError } = await supabase
+    /* ── 3. Fetch ppt_uploads record (admin — sem restrição RLS) ── */
+    const { data: upload, error: uploadFetchError } = await supabaseAdmin
       .from('ppt_uploads')
       .select('*')
       .eq('id', pptUploadId)
@@ -48,8 +51,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Upload has no associated lesson' }, { status: 400 })
     }
 
-    /* ── 4. Download file from Supabase Storage ─────────────────── */
-    const { data: fileData, error: downloadError } = await supabase.storage
+    /* ── 4. Download file from Supabase Storage (admin) ─────────── */
+    const { data: fileData, error: downloadError } = await supabaseAdmin.storage
       .from('ppt-uploads')
       .download(upload.storage_path)
 
@@ -70,7 +73,7 @@ export async function POST(request: Request) {
       slides = await parsePptx(buffer)
     } catch (parseErr) {
       // Mark upload as error so teacher knows something went wrong
-      await supabase
+      await supabaseAdmin
         .from('ppt_uploads')
         .update({ status: 'error' })
         .eq('id', pptUploadId)
@@ -97,7 +100,7 @@ export async function POST(request: Request) {
       }
     })
 
-    const { data: modules, error: insertError } = await supabase
+    const { data: modules, error: insertError } = await supabaseAdmin
       .from('modules')
       .insert(moduleInserts)
       .select()
@@ -109,8 +112,8 @@ export async function POST(request: Request) {
       )
     }
 
-    /* ── 7. Update ppt_uploads status to 'completed' ─────────────── */
-    await supabase
+    /* ── 7. Update ppt_uploads status to 'completed' (admin) ─────── */
+    await supabaseAdmin
       .from('ppt_uploads')
       .update({ status: 'completed' })
       .eq('id', pptUploadId)
