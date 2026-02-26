@@ -109,7 +109,14 @@ export function LessonPlayer({ lesson, modules, scores, studentId }: LessonPlaye
             />
           )}
           {activeTab === 'oratorio' && (
-            <OratorioTab module={currentModule} />
+            <OratorioTab
+              module={currentModule}
+              lessonId={lesson.id}
+              studentId={studentId}
+              existingScore={scores.find(
+                s => s.module_id === currentModule.id && s.module_type === 'speaking'
+              )}
+            />
           )}
         </motion.div>
       </AnimatePresence>
