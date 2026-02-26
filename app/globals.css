@@ -1,0 +1,158 @@
+@import url('https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── CSS Custom Properties ─────────────────────────────── */
+:root {
+  --ms-dark:   #023d52;
+  --ms-medium: #267189;
+  --ms-light:  #5e96a7;
+  --ms-brown:  #69432b;
+  --ms-gold:   #cea66f;
+  --ms-beige:  #f3eee7;
+}
+
+/* ─── Base Reset ─────────────────────────────────────────── */
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-ms-beige text-ms-dark antialiased;
+    font-family: 'Big Shoulders Display', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Big Shoulders Display', sans-serif;
+    @apply font-bold tracking-tight;
+  }
+
+  /* Scrollbar personalizada */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-ms-beige;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-ms-light rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-ms-medium;
+  }
+}
+
+/* ─── Component Utilities ────────────────────────────────── */
+@layer components {
+  /* Card padrão Master Speaking */
+  .ms-card {
+    @apply bg-white rounded-2xl shadow-sm border border-white/80 p-6;
+  }
+
+  /* Botão primário */
+  .ms-btn-primary {
+    @apply bg-ms-gradient text-white font-semibold rounded-xl px-6 py-3
+           hover:opacity-90 active:scale-95 transition-all duration-200
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Botão secundário */
+  .ms-btn-secondary {
+    @apply bg-white text-ms-dark font-semibold rounded-xl px-6 py-3
+           border border-ms-light/40 hover:bg-ms-beige
+           active:scale-95 transition-all duration-200;
+  }
+
+  /* Botão gold */
+  .ms-btn-gold {
+    @apply bg-ms-gold text-ms-dark font-semibold rounded-xl px-6 py-3
+           hover:opacity-90 active:scale-95 transition-all duration-200;
+  }
+
+  /* Badge de role */
+  .ms-badge-teacher {
+    @apply bg-ms-dark/10 text-ms-dark text-xs font-bold rounded-full px-3 py-1;
+  }
+
+  .ms-badge-student {
+    @apply bg-ms-gold/20 text-ms-brown text-xs font-bold rounded-full px-3 py-1;
+  }
+
+  /* Sidebar link ativo */
+  .ms-nav-link {
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-white/70
+           hover:bg-white/10 hover:text-white transition-all duration-200
+           font-semibold text-sm;
+  }
+
+  .ms-nav-link.active {
+    @apply bg-white/15 text-white;
+  }
+
+  /* Score ring */
+  .ms-score-ring {
+    @apply w-16 h-16 rounded-full flex items-center justify-center
+           text-xl font-black border-4;
+  }
+
+  /* Input field */
+  .ms-input {
+    @apply w-full px-4 py-3 rounded-xl border border-ms-light/30
+           bg-white text-ms-dark placeholder:text-ms-light/60
+           focus:outline-none focus:ring-2 focus:ring-ms-medium/40
+           focus:border-ms-medium transition-all duration-200
+           font-semibold text-sm;
+  }
+}
+
+/* ─── Gradient Background ────────────────────────────────── */
+.ms-gradient-bg {
+  background: linear-gradient(135deg, var(--ms-dark) 0%, var(--ms-medium) 100%);
+}
+
+/* ─── Glass Effect ───────────────────────────────────────── */
+.ms-glass {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* ─── Animations ─────────────────────────────────────────── */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-gold {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(206, 166, 111, 0.4); }
+  50%       { box-shadow: 0 0 0 8px rgba(206, 166, 111, 0); }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s ease-out both;
+}
+
+.animate-pulse-gold {
+  animation: pulse-gold 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ─── Loading skeleton ───────────────────────────────────── */
+.skeleton {
+  @apply animate-pulse rounded-lg bg-ms-light/20;
+}
+
+/* ─── Score colors ───────────────────────────────────────── */
+.score-excellent { @apply text-emerald-700; }
+.score-good      { @apply text-ms-medium; }
+.score-practice  { @apply text-amber-700; }
