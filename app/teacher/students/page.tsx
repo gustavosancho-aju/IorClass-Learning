@@ -1,15 +1,25 @@
 import { createClient } from '@/lib/supabase/server'
 import { Users, TrendingUp, Award } from 'lucide-react'
-import { formatScore, getScoreLevel } from '@/lib/utils'
+import { formatScore } from '@/lib/utils'
+import { StudentTable } from './StudentTable'
 
 /* ── Types ──────────────────────────────────────────────────────── */
-interface StudentSummary {
+export interface StudentSummary {
   student_id:        string
   student_name:      string | null
   avg_score:         number
   modules_completed: number
   last_activity:     string | null
   lesson_count:      number
+}
+
+export interface LessonRow {
+  student_id:        string
+  student_name:      string | null
+  lesson_id:         string
+  avg_score:         number | null
+  modules_completed: number | null
+  last_activity:     string | null
 }
 
 /* ── Page ───────────────────────────────────────────────────────── */
@@ -21,6 +31,9 @@ export default async function TeacherStudentsPage() {
     .from('student_performance')
     .select('student_id, student_name, lesson_id, avg_score, modules_completed, last_activity')
     .order('last_activity', { ascending: false })
+
+  /* Keep raw rows for drawer detail (before aggregation) */
+  const lessonRows: LessonRow[] = rows ?? []
 
   /* Aggregate: one entry per student */
   const studentMap = new Map<string, StudentSummary>()
@@ -92,60 +105,11 @@ export default async function TeacherStudentsPage() {
         />
       </div>
 
-      {/* Student table */}
+      {/* Student table — passes lessonRows for drawer detail */}
       {students.length === 0 ? (
         <EmptyState />
       ) : (
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-          {/* Table header */}
-          <div className="grid grid-cols-[1fr_auto_auto_auto] gap-4 px-5 py-3
-                          bg-slate-50 border-b border-slate-200
-                          text-xs font-bold text-slate-400 uppercase tracking-wide">
-            <span>Aluno</span>
-            <span className="text-right">Módulos</span>
-            <span className="text-right">Média</span>
-            <span className="text-right hidden md:block">Última atividade</span>
-          </div>
-
-          {/* Rows */}
-          <div className="divide-y divide-slate-100">
-            {students.map(student => {
-              const level = getScoreLevel(student.avg_score)
-              return (
-                <div
-                  key={student.student_id}
-                  className="grid grid-cols-[1fr_auto_auto_auto] gap-4 px-5 py-4
-                             items-center hover:bg-slate-50/70 transition-colors"
-                >
-                  {/* Name + ID */}
-                  <div className="min-w-0">
-                    <p className="font-bold text-ms-dark text-sm truncate">
-                      {student.student_name ?? 'Aluno sem nome'}
-                    </p>
-                    <p className="text-slate-400 text-xs font-mono mt-0.5">
-                      {student.student_id.slice(0, 8)}…
-                    </p>
-                  </div>
-
-                  {/* Modules */}
-                  <span className="text-sm font-bold text-slate-500 text-right">
-                    {student.modules_completed}
-                  </span>
-
-                  {/* Avg score */}
-                  <span className={`text-sm font-black text-right ${level.color}`}>
-                    {formatScore(student.avg_score)}
-                  </span>
-
-                  {/* Last activity */}
-                  <span className="text-xs text-slate-400 text-right hidden md:block">
-                    <LastActivity date={student.last_activity} />
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-        </div>
+        <StudentTable students={students} lessonRows={lessonRows} />
       )}
     </div>
   )
@@ -170,20 +134,6 @@ function SummaryCard({
       <p className="text-slate-500 text-xs font-semibold mt-1">{label}</p>
     </div>
   )
-}
-
-function LastActivity({ date }: { date: string | null }) {
-  if (!date) return <span className="text-slate-300">—</span>
-
-  const d    = new Date(date)
-  const now  = new Date()
-  const diff = Math.floor((now.getTime() - d.getTime()) / 1000)
-
-  if (diff < 60)       return <>{diff}s atrás</>
-  if (diff < 3600)     return <>{Math.floor(diff / 60)}min atrás</>
-  if (diff < 86400)    return <>{Math.floor(diff / 3600)}h atrás</>
-  if (diff < 604800)   return <>{Math.floor(diff / 86400)}d atrás</>
-  return <>{d.toLocaleDateString('pt-BR')}</>
 }
 
 function EmptyState() {
