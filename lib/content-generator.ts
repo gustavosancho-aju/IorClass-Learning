@@ -1,8 +1,12 @@
 /**
  * lib/content-generator.ts
  *
- * Wave 2 — rule-based content generation (no AI).
- * Converts extracted SlideData into structured module content.
+ * Content generation pipeline — two strategies:
+ *   1. AI-powered (Claude API) — when ANTHROPIC_API_KEY is set (default)
+ *   2. Rule-based fallback       — deterministic, zero external deps
+ *
+ * Use generateModuleContentBatch() in API routes.
+ * Individual helpers (generateResumo, etc.) remain for direct use / testing.
  */
 
 import type { SlideData } from './ppt-parser'
@@ -133,4 +137,45 @@ export function generateModuleContent(slide: SlideData): ModuleContent {
     tarefas:      generateTarefas(slide),
     oratorio:     generateOratorio(slide),
   }
+}
+
+/* ── Batch generator with AI + rule-based fallback ───────────────── */
+
+/**
+ * Generate content for all slides in a single pass.
+ *
+ * Strategy:
+ *   - If ANTHROPIC_API_KEY is set → use Claude API (one request for all slides)
+ *   - On error or missing key    → fall back to rule-based per slide
+ *
+ * This is the function API routes should call.
+ */
+export async function generateModuleContentBatch(
+  slides: SlideData[],
+): Promise<ModuleContent[]> {
+  if (process.env.GOOGLE_AI_API_KEY) {
+    try {
+      const { generateModuleContentWithAI } = await import('./ai/gemini-content-generator')
+      const results = await generateModuleContentWithAI(slides)
+
+      // If AI returned fewer slides than expected, pad with rule-based fallback
+      if (results.length < slides.length) {
+        const padded = [...results]
+        for (let i = results.length; i < slides.length; i++) {
+          padded.push(generateModuleContent(slides[i]))
+        }
+        return padded
+      }
+
+      return results
+    } catch (err) {
+      console.warn(
+        '[content-generator] Claude API failed — falling back to rule-based generation:',
+        err instanceof Error ? err.message : err,
+      )
+    }
+  }
+
+  // Rule-based fallback (synchronous)
+  return slides.map(generateModuleContent)
 }

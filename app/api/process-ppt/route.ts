@@ -14,7 +14,7 @@ import { NextResponse }          from 'next/server'
 import { createClient }          from '@/lib/supabase/server'
 import { createAdminClient }     from '@/lib/supabase/admin'
 import { parsePptx }             from '@/lib/ppt-parser'
-import { generateModuleContent } from '@/lib/content-generator'
+import { generateModuleContentBatch } from '@/lib/content-generator'
 import { checkRateLimit }        from '@/lib/rate-limit'
 
 // Standard Node.js runtime (needs Buffer + JSZip — no edge compat)
@@ -115,14 +115,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No slides found in the PPTX file' }, { status: 422 })
     }
 
-    /* ── 6. Generate module content + bulk insert ───────────────── */
+    /* ── 6. Generate module content (AI or rule-based) + bulk insert ─ */
+    let contents
+    try {
+      contents = await generateModuleContentBatch(slides)
+    } catch (genErr) {
+      console.error('[process-ppt] Content generation failed:', genErr)
+      return NextResponse.json(
+        { error: 'Failed to generate module content' },
+        { status: 500 },
+      )
+    }
+
     const moduleInserts = slides.map((slide, idx) => {
-      const content = generateModuleContent(slide)
+      const content = contents[idx]
       return {
         lesson_id:    upload.lesson_id!,
-        type:         'summary' as const, // single module per slide; all content in content_json
-        title:        slide.title,
-        content_json: content as unknown as Record<string, unknown>,
+        type:         'summary' as const,
+        title:        content?.title ?? slide.title,
+        content_json: (content ?? {}) as unknown as Record<string, unknown>,
         order_index:  idx,
       }
     })
