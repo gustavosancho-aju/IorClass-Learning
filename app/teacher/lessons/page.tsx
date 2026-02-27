@@ -36,7 +36,7 @@ export default async function TeacherLessonsPage() {
 
   const { data: lessons } = await supabase
     .from('lessons')
-    .select('id, title, cover_emoji, is_published, order_index, created_by, modules(count)')
+    .select('id, title, cover_emoji, is_published, order_index, created_by, modules(count), course_modules(title)')
     .eq('created_by', user!.id)
     .order('order_index')
 
@@ -78,6 +78,10 @@ export default async function TeacherLessonsPage() {
               (lesson.modules as unknown as ModuleCountRow[])?.[0]?.count ?? 0
             const actionFn = togglePublish.bind(null, lesson.id, lesson.is_published)
 
+            type CourseModuleRow = { title: string }
+            const courseModuleTitle =
+              (lesson.course_modules as unknown as CourseModuleRow | null)?.title ?? null
+
             return (
               <div
                 key={lesson.id}
@@ -94,9 +98,22 @@ export default async function TeacherLessonsPage() {
                 {/* Info */}
                 <div className="flex-1 min-w-0">
                   <p className="text-ms-dark font-bold truncate">{lesson.title}</p>
-                  <p className="text-slate-400 text-xs font-semibold mt-0.5">
-                    {moduleCount} {moduleCount === 1 ? 'slide' : 'slides'}
-                  </p>
+                  <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                    <p className="text-slate-400 text-xs font-semibold">
+                      {moduleCount} {moduleCount === 1 ? 'slide' : 'slides'}
+                    </p>
+                    {courseModuleTitle ? (
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full
+                                       bg-ms-medium/10 text-ms-medium">
+                        {courseModuleTitle}
+                      </span>
+                    ) : (
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full
+                                       bg-slate-100 text-slate-400">
+                        Sem módulo
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Status chip */}

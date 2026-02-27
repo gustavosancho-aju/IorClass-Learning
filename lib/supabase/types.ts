@@ -34,36 +34,78 @@ export type Database = {
         }
         Relationships: []
       }
-      lessons: {
+      course_modules: {
         Row: {
-          id:           string
-          title:        string
-          description:  string | null
-          cover_emoji:  string
-          order_index:  number
-          is_published: boolean
-          created_by:   string | null
-          created_at:   string
-          updated_at:   string
+          id:          string
+          title:       string
+          description: string | null
+          order_index: number
+          created_by:  string | null
+          created_at:  string
+          updated_at:  string
         }
         Insert: {
-          id?:          string        // allow pre-generated UUID for storage path coordination
+          id?:          string
           title:        string
           description?: string | null
-          cover_emoji?: string
           order_index?: number
-          is_published?: boolean
           created_by?:  string | null
         }
         Update: {
-          title?:        string
-          description?:  string | null
-          cover_emoji?:  string
-          order_index?:  number
-          is_published?: boolean
-          updated_at?:   string
+          title?:       string
+          description?: string | null
+          order_index?: number
+          updated_at?:  string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: 'course_modules_created_by_fkey'
+            columns:        ['created_by']
+            referencedRelation: 'profiles'
+            referencedColumns:  ['id']
+          }
+        ]
+      }
+      lessons: {
+        Row: {
+          id:               string
+          title:            string
+          description:      string | null
+          cover_emoji:      string
+          order_index:      number
+          is_published:     boolean
+          created_by:       string | null
+          course_module_id: string | null
+          created_at:       string
+          updated_at:       string
+        }
+        Insert: {
+          id?:              string        // allow pre-generated UUID for storage path coordination
+          title:            string
+          description?:     string | null
+          cover_emoji?:     string
+          order_index?:     number
+          is_published?:    boolean
+          created_by?:      string | null
+          course_module_id?: string | null
+        }
+        Update: {
+          title?:            string
+          description?:      string | null
+          cover_emoji?:      string
+          order_index?:      number
+          is_published?:     boolean
+          course_module_id?: string | null
+          updated_at?:       string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'lessons_course_module_id_fkey'
+            columns:        ['course_module_id']
+            referencedRelation: 'course_modules'
+            referencedColumns:  ['id']
+          }
+        ]
       }
       modules: {
         Row: {
@@ -199,7 +241,15 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      check_and_increment_rate_limit: {
+        Args: {
+          p_user_id:        string
+          p_endpoint:       string
+          p_max_requests:   number
+          p_window_minutes: number
+        }
+        Returns: Array<{ allowed: boolean; remaining: number }>
+      }
     }
     Enums: {
       user_role:     'teacher' | 'student'

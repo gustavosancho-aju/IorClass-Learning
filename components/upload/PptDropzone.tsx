@@ -17,23 +17,30 @@ const ACCEPTED_TYPES = [
 const ACCEPTED_EXTS = ['.pptx', '.ppt']
 
 /* ── Types ──────────────────────────────────────────────── */
+interface CourseModuleOption {
+  id:    string
+  title: string
+}
+
 interface PptDropzoneProps {
-  teacherId: string
+  teacherId:     string
+  courseModules: CourseModuleOption[]
 }
 
 type UploadState = 'idle' | 'validating' | 'uploading' | 'saving' | 'done' | 'error'
 
 /* ── Component ──────────────────────────────────────────── */
-export function PptDropzone({ teacherId }: PptDropzoneProps) {
+export function PptDropzone({ teacherId, courseModules }: PptDropzoneProps) {
   const router    = useRouter()
   const inputRef  = useRef<HTMLInputElement>(null)
 
-  const [dragOver,    setDragOver]    = useState(false)
-  const [file,        setFile]        = useState<File | null>(null)
-  const [lessonTitle, setLessonTitle] = useState('')
-  const [state,       setState]       = useState<UploadState>('idle')
-  const [progress,    setProgress]    = useState(0)
-  const [errorMsg,    setErrorMsg]    = useState('')
+  const [dragOver,          setDragOver]          = useState(false)
+  const [file,              setFile]              = useState<File | null>(null)
+  const [lessonTitle,       setLessonTitle]       = useState('')
+  const [selectedModuleId,  setSelectedModuleId]  = useState('')
+  const [state,             setState]             = useState<UploadState>('idle')
+  const [progress,          setProgress]          = useState(0)
+  const [errorMsg,          setErrorMsg]          = useState('')
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -115,10 +122,11 @@ export function PptDropzone({ teacherId }: PptDropzoneProps) {
 
       const result = await createPptUploadRecord({
         lessonId,
-        lessonTitle: lessonTitle.trim(),
+        lessonTitle:      lessonTitle.trim(),
         teacherId,
         storagePath,
         originalFilename: file.name,
+        courseModuleId:   selectedModuleId || undefined,
       })
 
       if (result.error) throw new Error(result.error)
@@ -161,6 +169,38 @@ export function PptDropzone({ teacherId }: PptDropzoneProps) {
                      focus:outline-none focus:ring-2 focus:ring-ms-medium/40
                      disabled:opacity-50 disabled:cursor-not-allowed"
         />
+      </div>
+
+      {/* Module selector */}
+      <div>
+        <label className="block text-sm font-bold text-ms-dark mb-1.5">
+          Módulo <span className="text-slate-400 font-normal">(opcional)</span>
+        </label>
+        <select
+          value={selectedModuleId}
+          onChange={e => setSelectedModuleId(e.target.value)}
+          disabled={isLoading}
+          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white
+                     text-ms-dark text-sm
+                     focus:outline-none focus:ring-2 focus:ring-ms-medium/40
+                     disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <option value="">— Sem módulo —</option>
+          {courseModules.map(m => (
+            <option key={m.id} value={m.id}>{m.title}</option>
+          ))}
+        </select>
+        <p className="text-xs text-slate-400 mt-1">
+          <a
+            href="/teacher/modules"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-ms-medium font-bold hover:underline"
+          >
+            + Criar novo módulo
+          </a>
+          {' '}(abre em nova aba)
+        </p>
       </div>
 
       {/* Dropzone */}
