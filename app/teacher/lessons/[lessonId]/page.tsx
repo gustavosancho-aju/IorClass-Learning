@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { ArrowLeft, CheckCircle2, Loader2, AlertCircle, BookOpen } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Loader2, AlertCircle, BookOpen, PlayCircle } from 'lucide-react'
 import { ProcessButton } from './ProcessButton'
 
 interface Props {
@@ -119,17 +119,21 @@ export default async function LessonDetailPage({ params }: Props) {
             </div>
           ))}
 
-          {/* Coming soon — full lesson player in Story 2.3 */}
-          <div className="bg-ms-light border border-ms-medium/30 rounded-xl p-4 flex gap-3 mt-4">
-            <span className="text-2xl">🚧</span>
-            <div className="text-sm text-ms-dark/80">
-              <p className="font-bold mb-0.5">Player de Aula em Breve</p>
-              <p className="text-ms-dark/60">
-                O módulo completo com Resumo, Tarefas e Oratório será disponibilizado
-                na próxima sprint (Story 2.3).
+          {/* Preview link for teacher */}
+          <Link
+            href={`/student/lessons/${lesson.id}`}
+            className="flex items-center gap-3 ms-gradient-bg text-white rounded-xl px-5 py-4 mt-2
+                       hover:opacity-90 transition-opacity group"
+          >
+            <PlayCircle size={22} className="shrink-0 group-hover:scale-110 transition-transform" />
+            <div className="flex-1 min-w-0">
+              <p className="font-black text-sm">Visualizar como Aluno</p>
+              <p className="text-white/70 text-xs mt-0.5">
+                Acesse o player completo com Resumo, Tarefas e Oratório
               </p>
             </div>
-          </div>
+            <ArrowLeft size={16} className="rotate-180 opacity-60 group-hover:opacity-100 transition-opacity" />
+          </Link>
         </div>
       ) : (
         !upload?.status && (
