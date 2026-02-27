@@ -1,12 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
-import { BookOpen, Users, TrendingUp, Star, ChevronRight, Upload } from 'lucide-react'
+import { BookOpen, Users, TrendingUp, Star, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { formatScore, getScoreLevel } from '@/lib/utils'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 export default async function TeacherDashboard() {
   const supabase = createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  await supabase.auth.getUser()
 
   // ── Dados agregados ──────────────────────────────────────
   const [
@@ -40,7 +41,7 @@ export default async function TeacherDashboard() {
   const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite'
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
+    <div className="px-4 py-6 md:p-8 max-w-6xl mx-auto">
       {/* ── Header ── */}
       <div className="mb-8 animate-fade-in-up">
         <p className="text-ms-light font-semibold text-sm uppercase tracking-widest mb-1">
@@ -130,7 +131,13 @@ export default async function TeacherDashboard() {
               ))}
             </div>
           ) : (
-            <EmptyLessons />
+            <EmptyState
+              illustration="lessons"
+              title="Nenhuma aula criada ainda"
+              description="Importe um PPT para gerar sua primeira aula"
+              ctaLabel="Enviar apresentação"
+              ctaHref="/teacher/upload"
+            />
           )}
         </div>
 
@@ -163,9 +170,11 @@ export default async function TeacherDashboard() {
               })}
             </div>
           ) : (
-            <p className="text-slate-400 text-sm font-semibold text-center py-8">
-              Nenhuma atividade ainda
-            </p>
+            <EmptyState
+              illustration="activity"
+              title="Nenhuma atividade ainda"
+              description="Aparecerá aqui quando alunos completarem módulos"
+            />
           )}
         </div>
       </div>
@@ -246,23 +255,3 @@ function QuickAction({
   )
 }
 
-function EmptyLessons() {
-  return (
-    <div className="text-center py-10">
-      <span className="text-5xl mb-3 block">📚</span>
-      <p className="text-ms-dark font-bold text-sm mb-1">Nenhuma aula criada ainda</p>
-      <p className="text-slate-400 text-xs font-semibold mb-4">
-        Importe um PPT para gerar sua primeira aula
-      </p>
-      <Link
-        href="/teacher/upload"
-        className="inline-flex items-center gap-2 bg-ms-gradient text-white
-                   text-sm font-bold px-5 py-2.5 rounded-xl hover:opacity-90
-                   transition-opacity"
-      >
-        <Upload size={14} />
-        Enviar apresentação
-      </Link>
-    </div>
-  )
-}

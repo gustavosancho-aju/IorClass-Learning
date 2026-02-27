@@ -64,7 +64,7 @@ export function Sidebar({ role, userName, userEmail }: SidebarProps) {
     .toUpperCase()
 
   return (
-    <aside className="w-64 min-h-screen ms-gradient-bg flex flex-col">
+    <aside className="hidden md:flex w-64 min-h-screen ms-gradient-bg flex-col">
       {/* ── Logo ── */}
       <div className="px-6 py-7 border-b border-white/10">
         <div className="flex items-center gap-2 mb-1">
@@ -96,7 +96,7 @@ export function Sidebar({ role, userName, userEmail }: SidebarProps) {
               )}
             >
               <span className={cn(
-                'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
+                'w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0',
                 isActive ? 'bg-ms-gold/20 text-ms-gold' : 'text-white/50'
               )}>
                 {item.icon}
@@ -121,7 +121,7 @@ export function Sidebar({ role, userName, userEmail }: SidebarProps) {
           href={`/${role}/settings`}
           className="ms-nav-link"
         >
-          <span className="w-8 h-8 rounded-lg flex items-center justify-center text-white/50">
+          <span className="w-10 h-10 rounded-lg flex items-center justify-center text-white/50">
             <Settings size={18} />
           </span>
           Configurações
@@ -131,7 +131,7 @@ export function Sidebar({ role, userName, userEmail }: SidebarProps) {
           onClick={handleLogout}
           className="ms-nav-link w-full text-left text-red-300/70 hover:text-red-300"
         >
-          <span className="w-8 h-8 rounded-lg flex items-center justify-center">
+          <span className="w-10 h-10 rounded-lg flex items-center justify-center">
             <LogOut size={18} />
           </span>
           Sair

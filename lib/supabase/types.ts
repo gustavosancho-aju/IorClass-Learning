@@ -47,6 +47,7 @@ export type Database = {
           updated_at:   string
         }
         Insert: {
+          id?:          string        // allow pre-generated UUID for storage path coordination
           title:        string
           description?: string | null
           cover_emoji?: string
@@ -155,6 +156,30 @@ export type Database = {
         Update: {
           lesson_id?: string | null
           status?:    'processing' | 'completed' | 'error'
+        }
+        Relationships: []
+      }
+      rate_limits: {
+        Row: {
+          id:            string
+          user_id:       string
+          endpoint:      string
+          window_start:  string
+          request_count: number
+          updated_at:    string | null
+        }
+        Insert: {
+          id?:            string
+          user_id:        string
+          endpoint:       string
+          window_start:   string
+          request_count?: number
+          updated_at?:    string | null
+        }
+        Update: {
+          window_start?:  string
+          request_count?: number
+          updated_at?:    string | null
         }
         Relationships: []
       }
