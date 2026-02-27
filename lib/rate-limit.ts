@@ -12,59 +12,41 @@ export interface RateLimitResult {
 }
 
 /**
- * Sliding-window rate limiter backed by Supabase `rate_limits` table.
- * Uses admin client (bypasses RLS) for reliable server-side writes.
+ * Atomic rate limiter backed by a PostgreSQL RPC function.
+ * A single `INSERT ON CONFLICT DO UPDATE WHERE` statement handles all cases:
+ *   · New user        → insert count=1, allowed=true
+ *   · Window expired  → reset count to 1, allowed=true
+ *   · Within limit    → increment count, allowed=true
+ *   · Limit exceeded  → no-op (WHERE blocks update), allowed=false
+ *
+ * Replaces the previous SELECT → UPDATE pattern that had a race-condition
+ * where two concurrent requests could both read count < max before either
+ * incremented, effectively doubling the allowed request count.
  */
 export async function checkRateLimit(
   userId: string,
   config: RateLimitConfig
 ): Promise<RateLimitResult> {
-  const supabase    = createAdminClient()
-  const windowStart = new Date(Date.now() - config.windowMinutes * 60 * 1000).toISOString()
-  const now         = new Date().toISOString()
+  const supabase = createAdminClient()
 
-  // Fetch existing record for this user + endpoint
-  const { data: existing } = await supabase
-    .from('rate_limits')
-    .select('id, window_start, request_count')
-    .eq('user_id', userId)
-    .eq('endpoint', config.endpoint)
-    .single()
+  const { data, error } = await supabase.rpc('check_and_increment_rate_limit', {
+    p_user_id:        userId,
+    p_endpoint:       config.endpoint,
+    p_max_requests:   config.maxRequests,
+    p_window_minutes: config.windowMinutes,
+  })
 
-  if (!existing || existing.window_start < windowStart) {
-    // No record OR window expired → start fresh
-    await supabase
-      .from('rate_limits')
-      .upsert(
-        {
-          user_id:       userId,
-          endpoint:      config.endpoint,
-          window_start:  now,
-          request_count: 1,
-          updated_at:    now,
-        },
-        { onConflict: 'user_id,endpoint' }
-      )
-
-    return { allowed: true, remaining: config.maxRequests - 1 }
+  if (error) {
+    console.error('[rate-limit] RPC error:', error)
+    // Fail open: avoid blocking users when the DB has transient issues
+    return { allowed: true, remaining: config.maxRequests }
   }
 
-  if (existing.request_count >= config.maxRequests) {
-    // Limit exceeded
-    return { allowed: false, remaining: 0 }
-  }
-
-  // Increment counter
-  await supabase
-    .from('rate_limits')
-    .update({
-      request_count: existing.request_count + 1,
-      updated_at:    now,
-    })
-    .eq('id', existing.id)
+  // Supabase returns RPC table results as an array; take the first row
+  const row = Array.isArray(data) ? data[0] : data
 
   return {
-    allowed:   true,
-    remaining: config.maxRequests - existing.request_count - 1,
+    allowed:   row?.allowed   ?? true,
+    remaining: row?.remaining ?? 0,
   }
 }

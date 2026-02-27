@@ -40,15 +40,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
-  // ─── Proteção por role ───────────────────────────────────
+  // ─── Proteção por role via JWT (zero DB query) ────────────
+  // user_metadata.role é definido no signup e embutido no JWT.
+  // Mesmo campo usado pelos RLS policies: auth.jwt() -> 'user_metadata' ->> 'role'
   if (user) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    const role = profile?.role
+    const role = user.user_metadata?.role as 'teacher' | 'student' | undefined
 
     // Teacher tentando acessar área de aluno
     if (role === 'teacher' && pathname.startsWith('/student')) {

@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, BookOpen, Users, BarChart2,
-  Upload, Settings, LogOut, ChevronRight
+  Upload, Settings, LogOut, ChevronRight, Layers
 } from 'lucide-react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
@@ -28,15 +28,16 @@ interface SidebarProps {
 const teacherNav: NavItem[] = [
   { href: '/teacher/dashboard', label: 'Dashboard',    icon: <LayoutDashboard size={18} /> },
   { href: '/teacher/lessons',   label: 'Aulas',        icon: <BookOpen size={18} /> },
+  { href: '/teacher/modules',   label: 'Módulos',      icon: <Layers size={18} /> },
   { href: '/teacher/students',  label: 'Alunos',       icon: <Users size={18} /> },
   { href: '/teacher/analytics', label: 'Analytics',    icon: <BarChart2 size={18} /> },
   { href: '/teacher/upload',    label: 'Upload PPT',   icon: <Upload size={18} /> },
 ]
 
 const studentNav: NavItem[] = [
-  { href: '/student/dashboard', label: 'Início',       icon: <LayoutDashboard size={18} /> },
-  { href: '/student/lessons',   label: 'Minhas Aulas', icon: <BookOpen size={18} /> },
-  { href: '/student/progress',  label: 'Progresso',    icon: <BarChart2 size={18} /> },
+  { href: '/student/dashboard', label: 'Início',    icon: <LayoutDashboard size={18} /> },
+  { href: '/student/lessons',   label: 'Módulos',   icon: <Layers size={18} /> },
+  { href: '/student/progress',  label: 'Progresso', icon: <BarChart2 size={18} /> },
 ]
 
 /* ── Component ──────────────────────────────────────────── */

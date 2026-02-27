@@ -4,11 +4,12 @@ import { createClient } from '@/lib/supabase/server'
 
 /* ── Types ──────────────────────────────────────────────── */
 export interface CreatePptUploadInput {
-  lessonId:        string
-  lessonTitle:     string
-  teacherId:       string
-  storagePath:     string
+  lessonId:         string
+  lessonTitle:      string
+  teacherId:        string
+  storagePath:      string
   originalFilename: string
+  courseModuleId?:  string | null
 }
 
 export interface CreatePptUploadResult {
@@ -27,7 +28,7 @@ export interface CreatePptUploadResult {
 export async function createPptUploadRecord(
   input: CreatePptUploadInput
 ): Promise<CreatePptUploadResult> {
-  const { lessonId, lessonTitle, teacherId, storagePath, originalFilename } = input
+  const { lessonId, lessonTitle, teacherId, storagePath, originalFilename, courseModuleId } = input
 
   const supabase = createClient()
 
@@ -35,9 +36,10 @@ export async function createPptUploadRecord(
   const { error: lessonError } = await supabase
     .from('lessons')
     .insert({
-      id:         lessonId,
-      title:      lessonTitle,
-      created_by: teacherId,
+      id:               lessonId,
+      title:            lessonTitle,
+      created_by:       teacherId,
+      course_module_id: courseModuleId ?? null,
     })
 
   if (lessonError) {

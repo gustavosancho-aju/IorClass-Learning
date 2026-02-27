@@ -9,6 +9,13 @@ export default async function UploadPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  /* Fetch teacher's course modules for the module selector */
+  const { data: courseModules } = await supabase
+    .from('course_modules')
+    .select('id, title')
+    .eq('created_by', user.id)
+    .order('order_index')
+
   return (
     <div className="px-4 py-6 md:p-8 max-w-2xl mx-auto">
       {/* Header */}
@@ -37,7 +44,10 @@ export default async function UploadPage() {
       </div>
 
       {/* Dropzone */}
-      <PptDropzone teacherId={user.id} />
+      <PptDropzone
+        teacherId={user.id}
+        courseModules={courseModules ?? []}
+      />
     </div>
   )
 }
