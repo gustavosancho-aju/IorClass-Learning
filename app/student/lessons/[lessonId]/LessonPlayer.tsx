@@ -1,7 +1,7 @@
 'use client'
 
-import { useState }   from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useCallback } from 'react'
+import { motion, AnimatePresence, type PanInfo } from 'framer-motion'
 import { ResumoTab }  from './tabs/ResumoTab'
 import { TarefasTab } from './tabs/TarefasTab'
 import { OratorioTab } from './tabs/OratorioTab'
@@ -38,6 +38,17 @@ export function LessonPlayer({ lesson, modules, scores, studentId }: LessonPlaye
     const clamped = Math.max(0, Math.min(modules.length - 1, idx))
     setCurrentSlide(clamped)
   }
+
+  const handleDragEnd = useCallback((_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    if (activeTab === 'oratorio') return  // Don't navigate while recording
+
+    const { offset, velocity } = info
+    if (offset.x < -50 || velocity.x < -300) {
+      goToSlide(currentSlide + 1)   // swipe left → next
+    } else if (offset.x > 50 || velocity.x > 300) {
+      goToSlide(currentSlide - 1)   // swipe right → prev
+    }
+  }, [activeTab, currentSlide])  // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 space-y-5">
@@ -78,7 +89,14 @@ export function LessonPlayer({ lesson, modules, scores, studentId }: LessonPlaye
         ))}
       </div>
 
-      {/* Tab content — animated */}
+      {/* Tab content — animated + swipe */}
+      <motion.div
+        drag="x"
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={0.15}
+        onDragEnd={handleDragEnd}
+        style={{ touchAction: 'pan-y' }}
+      >
       <AnimatePresence mode="wait">
         <motion.div
           key={`${activeTab}-${currentSlide}`}
@@ -120,6 +138,7 @@ export function LessonPlayer({ lesson, modules, scores, studentId }: LessonPlaye
           )}
         </motion.div>
       </AnimatePresence>
+      </motion.div>
     </div>
   )
 }

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import toast from 'react-hot-toast'
 import { Mic, MicOff, RotateCcw } from 'lucide-react'
-import { cn }                     from '@/lib/utils'
+import { cn, getScoreLevel }      from '@/lib/utils'
 import { scoreSpeech, getOratoryFeedback } from '@/lib/speech-score'
 import type { Database }    from '@/lib/supabase/types'
 import type { LessonModule } from '../types'
@@ -284,7 +284,7 @@ export function OratorioTab({ module, lessonId, studentId, existingScore }: Orat
           <span className="text-5xl">{feedback.emoji}</span>
           <div className={cn(
             'text-4xl font-black',
-            score >= 80 ? 'text-green-500' : score >= 50 ? 'text-amber-500' : 'text-red-500'
+            getScoreLevel(score).color
           )}>
             {score}
             <span className="text-xl font-normal text-slate-400"> pts</span>
@@ -301,7 +301,7 @@ export function OratorioTab({ module, lessonId, studentId, existingScore }: Orat
           <div
             className={cn(
               'h-full rounded-full transition-all duration-700',
-              score >= 80 ? 'bg-green-400' : score >= 50 ? 'bg-amber-400' : 'bg-red-400'
+              score >= 80 ? 'bg-emerald-500' : score >= 50 ? 'bg-ms-medium' : 'bg-amber-500'
             )}
             style={{ width: `${score}%` }}
           />
@@ -406,11 +406,11 @@ export function OratorioTab({ module, lessonId, studentId, existingScore }: Orat
 
       {/* Previous best score */}
       {score !== null && feedback && (
-        <div className="bg-ms-light rounded-xl px-4 py-3 flex items-center justify-between">
+        <div className="bg-ms-beige rounded-xl px-4 py-3 flex items-center justify-between">
           <span className="text-sm text-slate-500">Melhor pontuação</span>
           <span className={cn(
             'text-lg font-black',
-            score >= 80 ? 'text-green-500' : score >= 50 ? 'text-amber-500' : 'text-red-500'
+            getScoreLevel(score).color
           )}>
             {feedback.emoji} {score} pts
           </span>
@@ -452,7 +452,7 @@ function Header({ oratorio }: { oratorio: { prompt: string; target_phrase: strin
       </div>
 
       {oratorio.target_phrase && (
-        <div className="bg-ms-light rounded-xl px-4 py-3">
+        <div className="bg-ms-beige rounded-xl px-4 py-3">
           <p className="text-xs text-slate-400 uppercase tracking-wide font-bold mb-1">
             Frase-alvo
           </p>

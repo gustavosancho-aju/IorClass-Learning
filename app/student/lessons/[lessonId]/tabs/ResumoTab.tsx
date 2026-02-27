@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { createBrowserClient }   from '@supabase/ssr'
-import { ChevronLeft, ChevronRight, Volume2, VolumeX } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Volume2, VolumeX, Loader2 } from 'lucide-react'
 import type { Database }     from '@/lib/supabase/types'
 import type { LessonModule } from '../types'
 
@@ -35,7 +35,8 @@ export function ResumoTab({
   const resumo = module.content_json?.resumo ?? { text: '', bullets: [] }
 
   /* ── TTS state ─────────────────────────────────────────────── */
-  const [isPlaying, setIsPlaying] = useState(false)
+  const [isPlaying,      setIsPlaying]      = useState(false)
+  const [isFetchingAudio, setIsFetchingAudio] = useState(false)
 
   /** Stop any active audio (browser or Eleven Labs). */
   const [audioRef] = useState<{ current: HTMLAudioElement | null }>({ current: null })
@@ -51,9 +52,10 @@ export function ResumoTab({
 
   const speak = useCallback(async () => {
     if (isPlaying) { stopAudio(); return }
+    if (isFetchingAudio) return  // Prevent double-click
 
     const text = (resumo.text || resumo.bullets.join('. ')).slice(0, 1000)
-    setIsPlaying(true)
+    setIsFetchingAudio(true)  // Show loading state
 
     try {
       const res = await fetch('/api/tts', {
@@ -61,6 +63,8 @@ export function ResumoTab({
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ text }),
       })
+
+      setIsFetchingAudio(false)  // Loading done (success)
 
       const contentType = res.headers.get('Content-Type') ?? ''
       if (contentType.includes('audio/mpeg')) {
@@ -70,9 +74,12 @@ export function ResumoTab({
         audioRef.current = audio
         audio.onended = () => setIsPlaying(false)
         audio.play()
+        setIsPlaying(true)
         return
       }
-    } catch { /* fall through to browser TTS */ }
+    } catch {
+      setIsFetchingAudio(false)  // Loading done (error)
+    }
 
     // Fallback: browser Web Speech API
     const utterance = new SpeechSynthesisUtterance(text)
@@ -80,8 +87,9 @@ export function ResumoTab({
     utterance.rate  = 0.9
     utterance.onend = () => setIsPlaying(false)
     window.speechSynthesis.speak(utterance)
+    setIsPlaying(true)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPlaying, resumo])
+  }, [isPlaying, isFetchingAudio, resumo])
 
   /* ── Read tracking + score upsert ─────────────────────────── */
   const [readSlides, setReadSlides] = useState<Set<number>>(
@@ -163,15 +171,23 @@ export function ResumoTab({
       {/* TTS button */}
       <button
         onClick={speak}
+        disabled={isFetchingAudio}
         className={[
-          'inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all',
-          isPlaying
-            ? 'bg-ms-medium text-white'
-            : 'bg-ms-light text-ms-dark hover:bg-ms-medium/20',
+          'inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all',
+          isFetchingAudio
+            ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+            : isPlaying
+              ? 'bg-ms-medium text-white'
+              : 'bg-ms-light text-ms-dark hover:bg-ms-medium/20',
         ].join(' ')}
       >
-        {isPlaying ? <VolumeX size={16} /> : <Volume2 size={16} />}
-        {isPlaying ? 'Parar' : 'Ouvir'}
+        {isFetchingAudio ? (
+          <><Loader2 size={16} className="animate-spin" />Carregando...</>
+        ) : isPlaying ? (
+          <><VolumeX size={16} />Parar</>
+        ) : (
+          <><Volume2 size={16} />Ouvir</>
+        )}
       </button>
 
       {/* Navigation */}
@@ -179,7 +195,7 @@ export function ResumoTab({
         <button
           onClick={handlePrev}
           disabled={currentSlide === 0}
-          className="flex items-center gap-1 px-4 py-2 rounded-xl text-sm font-bold
+          className="flex items-center gap-1 px-4 py-2.5 rounded-xl text-sm font-bold
                      text-slate-500 hover:text-ms-dark hover:bg-slate-100 transition-all
                      disabled:opacity-30 disabled:cursor-not-allowed"
         >
@@ -194,7 +210,7 @@ export function ResumoTab({
         <button
           onClick={handleNext}
           disabled={currentSlide === totalSlides - 1}
-          className="flex items-center gap-1 px-4 py-2 rounded-xl text-sm font-bold
+          className="flex items-center gap-1 px-4 py-2.5 rounded-xl text-sm font-bold
                      bg-ms-medium text-white hover:opacity-90 transition-all
                      disabled:opacity-30 disabled:cursor-not-allowed"
         >

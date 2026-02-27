@@ -10,7 +10,7 @@ export default async function UploadPage() {
   if (!user) redirect('/login')
 
   return (
-    <div className="p-8 max-w-2xl mx-auto">
+    <div className="px-4 py-6 md:p-8 max-w-2xl mx-auto">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-black text-ms-dark mb-2">

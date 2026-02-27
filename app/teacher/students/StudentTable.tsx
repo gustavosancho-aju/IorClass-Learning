@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import { formatScore, getScoreLevel } from '@/lib/utils'
+import { EmptyState } from '@/components/ui/EmptyState'
 import type { StudentSummary, LessonRow } from './page'
 
 /* ── LastActivity helper (client-side) ─────────────────────────── */
@@ -92,16 +93,16 @@ export function StudentTable({
       {/* ── Overlay + Drawer ──────────────────────────────────── */}
       {selectedId && (
         <>
-          {/* Backdrop */}
+          {/* Backdrop — z-[55] covers BottomNav (z-50) on mobile */}
           <div
-            className="fixed inset-0 bg-black/20 z-40"
+            className="fixed inset-0 bg-black/20 z-[55]"
             onClick={() => setSelectedId(null)}
           />
 
-          {/* Drawer panel */}
+          {/* Drawer panel — z-[60] above backdrop and BottomNav */}
           <div
             className="fixed right-0 top-0 h-full w-full md:w-[400px]
-                        bg-white shadow-2xl z-50 overflow-y-auto
+                        bg-white shadow-2xl z-[60] overflow-y-auto
                         translate-x-0 transition-transform duration-300"
           >
             {/* Header */}
@@ -116,7 +117,7 @@ export function StudentTable({
               </div>
               <button
                 onClick={() => setSelectedId(null)}
-                className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center
+                className="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center
                            justify-center transition-colors"
                 aria-label="Fechar"
               >
@@ -130,9 +131,12 @@ export function StudentTable({
                 Por aula ({selectedLessons.length} aula{selectedLessons.length !== 1 ? 's' : ''})
               </p>
               {selectedLessons.length === 0 ? (
-                <p className="text-slate-400 text-sm text-center py-6">
-                  Nenhuma aula com atividade
-                </p>
+                <EmptyState
+                  illustration="activity"
+                  title="Nenhuma aula"
+                  description="Este aluno ainda não completou nenhuma atividade"
+                  className="py-6"
+                />
               ) : (
                 selectedLessons.map(lesson => {
                   const level = getScoreLevel(lesson.avg_score ?? 0)

@@ -12,7 +12,7 @@ export default async function TeacherSettingsPage() {
     .single()
 
   return (
-    <div className="p-8 max-w-lg mx-auto">
+    <div className="px-4 py-6 md:p-8 max-w-lg mx-auto">
       <div className="mb-8 animate-fade-in-up">
         <p className="text-ms-medium font-semibold text-sm uppercase tracking-widest mb-1">
           Conta

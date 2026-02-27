@@ -35,7 +35,7 @@ export default async function StudentLessonsPage() {
   }
 
   return (
-    <div className="p-8 max-w-2xl mx-auto space-y-6">
+    <div className="px-4 py-6 md:p-8 max-w-2xl mx-auto space-y-6">
       <div>
         <h1 className="text-3xl font-black text-ms-dark mb-1">📚 Minhas Aulas</h1>
         <p className="text-slate-500 text-sm">Aulas disponíveis para você</p>

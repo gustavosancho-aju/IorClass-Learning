@@ -101,7 +101,7 @@ export default async function TeacherAnalyticsPage({ searchParams }: PageProps) 
 
   /* ── Render ─────────────────────────────────────────────────── */
   return (
-    <div className="p-8 max-w-5xl mx-auto">
+    <div className="px-4 py-6 md:p-8 max-w-5xl mx-auto">
       {/* Header + Period filter */}
       <div className="flex items-start justify-between mb-8 animate-fade-in-up">
         <div>

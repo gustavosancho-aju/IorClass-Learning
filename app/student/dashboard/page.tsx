@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { ChevronRight, Trophy } from 'lucide-react'
 import { formatScore, getScoreLevel, calcAvgScore } from '@/lib/utils'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 export default async function StudentDashboard() {
   const supabase = createClient()
@@ -54,7 +55,7 @@ export default async function StudentDashboard() {
   const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite'
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
+    <div className="px-4 py-6 md:p-8 max-w-5xl mx-auto">
       {/* ── Header ── */}
       <div className="mb-8 animate-fade-in-up">
         <p className="text-ms-light font-semibold text-sm uppercase tracking-widest mb-1">
@@ -71,7 +72,7 @@ export default async function StudentDashboard() {
       </div>
 
       {/* ── Stats pessoais ── */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {/* Média geral */}
         <div className={`ms-card border ${scoreLevel.bg} border-current/10 text-center animate-fade-in-up`}>
           <div className={`w-14 h-14 rounded-full border-4 mx-auto mb-3 flex items-center
@@ -111,7 +112,7 @@ export default async function StudentDashboard() {
       {allScoreValues.length > 0 && (
         <div className="ms-card mb-6">
           <h2 className="text-ms-dark font-black text-lg mb-4">Desempenho por Módulo</h2>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
               { type: 'summary',  emoji: '📚', label: 'Resumo' },
               { type: 'tasks',    emoji: '✏️', label: 'Tarefas' },
@@ -211,15 +212,11 @@ export default async function StudentDashboard() {
             })}
           </div>
         ) : (
-          <div className="text-center py-12">
-            <span className="text-5xl block mb-3">📚</span>
-            <p className="text-ms-dark font-bold text-sm mb-1">
-              Nenhuma aula disponível ainda
-            </p>
-            <p className="text-slate-400 text-xs font-semibold">
-              Aguarde o professor publicar o conteúdo
-            </p>
-          </div>
+          <EmptyState
+            illustration="lessons"
+            title="Nenhuma aula disponível"
+            description="Aguarde o professor publicar o conteúdo"
+          />
         )}
       </div>
     </div>

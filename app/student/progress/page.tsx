@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { formatScore, getScoreLevel, getModuleInfo, calcAvgScore } from '@/lib/utils'
 import { BarChart2 } from 'lucide-react'
 import Link from 'next/link'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 export const metadata = { title: 'Meu Progresso — Master Speaking' }
 
@@ -74,7 +75,7 @@ export default async function ProgressPage() {
     : null
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
+    <div className="px-4 py-6 md:p-8 max-w-5xl mx-auto">
 
       {/* ── Header ── */}
       <div className="mb-8">
@@ -93,23 +94,13 @@ export default async function ProgressPage() {
 
       {allScores.length === 0 ? (
         /* ── Estado vazio ── */
-        <div className="ms-card text-center py-16">
-          <span className="text-6xl block mb-4">🎯</span>
-          <h2 className="text-ms-dark font-black text-xl mb-2">
-            Nenhuma atividade ainda
-          </h2>
-          <p className="text-slate-400 text-sm font-semibold mb-6 max-w-sm mx-auto">
-            Complete módulos nas aulas para ver seu progresso aqui.
-          </p>
-          <Link
-            href="/student/lessons"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl
-                       ms-gradient-bg text-white font-black text-sm
-                       hover:opacity-90 transition-opacity"
-          >
-            Começar agora →
-          </Link>
-        </div>
+        <EmptyState
+          illustration="progress"
+          title="Nenhuma atividade ainda"
+          description="Complete módulos nas aulas para ver seu progresso aqui."
+          ctaLabel="Começar agora"
+          ctaHref="/student/lessons"
+        />
       ) : (
         <>
           {/* ── Top stats ── */}
