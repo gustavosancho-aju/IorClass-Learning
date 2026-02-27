@@ -7,10 +7,25 @@ import Link from 'next/link'
 async function togglePublish(lessonId: string, current: boolean) {
   'use server'
   const supabase = createClient()
+
+  // Explicit auth guard
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) throw new Error('Unauthorized')
+
+  // Ownership check — only the lesson creator can toggle
+  const { data: lesson } = await supabase
+    .from('lessons')
+    .select('created_by')
+    .eq('id', lessonId)
+    .single()
+
+  if (lesson?.created_by !== user.id) throw new Error('Forbidden')
+
   await supabase
     .from('lessons')
     .update({ is_published: !current })
     .eq('id', lessonId)
+
   revalidatePath('/teacher/lessons')
 }
 

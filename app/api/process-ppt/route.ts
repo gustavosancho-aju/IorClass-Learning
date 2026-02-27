@@ -15,6 +15,7 @@ import { createClient }          from '@/lib/supabase/server'
 import { createAdminClient }     from '@/lib/supabase/admin'
 import { parsePptx }             from '@/lib/ppt-parser'
 import { generateModuleContent } from '@/lib/content-generator'
+import { checkRateLimit }        from '@/lib/rate-limit'
 
 // Standard Node.js runtime (needs Buffer + JSZip — no edge compat)
 export const runtime = 'nodejs'
@@ -36,6 +37,32 @@ export async function POST(request: Request) {
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    // ── Role check — only teachers can process PPTs ──────────────
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (profile?.role !== 'teacher') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+    // ─────────────────────────────────────────────────────────────
+
+    // ── Rate limit — 5 process jobs per hour per user ─────────────
+    const rl = await checkRateLimit(user.id, {
+      endpoint:      'process-ppt',
+      maxRequests:   5,
+      windowMinutes: 60,
+    })
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Try again later.' },
+        { status: 429 }
+      )
+    }
+    // ─────────────────────────────────────────────────────────────
 
     /* ── 3. Fetch ppt_uploads record (admin — sem restrição RLS) ── */
     const { data: upload, error: uploadFetchError } = await supabaseAdmin

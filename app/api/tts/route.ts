@@ -8,7 +8,11 @@
  * Response:     audio/mpeg stream | { fallback: true }
  */
 
-export const runtime = 'edge'
+import { createClient }   from '@/lib/supabase/server'
+import { checkRateLimit } from '@/lib/rate-limit'
+
+// Node.js runtime required for createClient + checkRateLimit (Supabase admin client)
+export const runtime = 'nodejs'
 
 const FALLBACK_VOICE  = '21m00Tcm4TlvDq8ikWAM' // Rachel — fallback se ELEVENLABS_VOICE_ID não definido
 const MAX_TEXT_LENGTH = 1000
@@ -22,6 +26,27 @@ export async function POST(request: Request) {
     return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400 })
   }
 
+  /* ── 2. Auth check — get user for rate limiting ──────────────── */
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
+  }
+
+  /* ── 3. Rate limit — 20 TTS calls per minute per user ───────── */
+  const rl = await checkRateLimit(user.id, {
+    endpoint:      'tts',
+    maxRequests:   20,
+    windowMinutes: 1,
+  })
+  if (!rl.allowed) {
+    return new Response(
+      JSON.stringify({ error: 'Rate limit exceeded. Try again later.' }),
+      { status: 429 }
+    )
+  }
+
+  /* ── 4. Validate body ────────────────────────────────────────── */
   // Voice priority: request body → env var → hardcoded fallback
   const envVoice = process.env.ELEVENLABS_VOICE_ID
   const { text, voice = envVoice ?? FALLBACK_VOICE } = body
@@ -39,7 +64,7 @@ export async function POST(request: Request) {
 
   const voiceId = typeof voice === 'string' ? voice : (envVoice ?? FALLBACK_VOICE)
 
-  /* ── 2. Proxy to Eleven Labs ─────────────────────────────────── */
+  /* ── 5. Proxy to Eleven Labs ─────────────────────────────────── */
   const apiKey = process.env.ELEVENLABS_API_KEY
   if (!apiKey) {
     // No API key configured — tell client to use browser TTS

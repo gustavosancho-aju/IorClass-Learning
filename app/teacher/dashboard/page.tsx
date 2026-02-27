@@ -6,7 +6,7 @@ import { formatScore, getScoreLevel } from '@/lib/utils'
 export default async function TeacherDashboard() {
   const supabase = createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  await supabase.auth.getUser()
 
   // ── Dados agregados ──────────────────────────────────────
   const [

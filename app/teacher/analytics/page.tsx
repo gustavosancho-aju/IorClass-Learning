@@ -240,7 +240,7 @@ function KPICard({
 }
 
 function RankingTable({
-  title, students, best,
+  title, students, best: _best,
 }: {
   title: string
   students: Array<{ id: string; name: string; avg: number }>

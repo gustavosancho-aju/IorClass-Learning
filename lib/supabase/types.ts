@@ -159,6 +159,30 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limits: {
+        Row: {
+          id:            string
+          user_id:       string
+          endpoint:      string
+          window_start:  string
+          request_count: number
+          updated_at:    string | null
+        }
+        Insert: {
+          id?:            string
+          user_id:        string
+          endpoint:       string
+          window_start:   string
+          request_count?: number
+          updated_at?:    string | null
+        }
+        Update: {
+          window_start?:  string
+          request_count?: number
+          updated_at?:    string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       student_performance: {
