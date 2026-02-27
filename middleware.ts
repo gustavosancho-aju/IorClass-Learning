@@ -27,7 +27,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // ─── Rotas públicas ──────────────────────────────────────
-  const publicRoutes = ['/login', '/auth/callback']
+  const publicRoutes = ['/login', '/signup', '/auth/callback']
   const isPublic = publicRoutes.some(r => pathname.startsWith(r))
 
   // Usuário não autenticado tentando acessar rota privada
@@ -35,8 +35,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Usuário autenticado tentando acessar login
-  if (user && pathname === '/login') {
+  // Usuário autenticado tentando acessar login ou signup
+  if (user && (pathname === '/login' || pathname === '/signup')) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
