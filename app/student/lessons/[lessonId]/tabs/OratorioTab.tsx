@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
+import toast from 'react-hot-toast'
 import { Mic, MicOff, RotateCcw } from 'lucide-react'
 import { cn }                     from '@/lib/utils'
 import { scoreSpeech, getOratoryFeedback } from '@/lib/speech-score'
@@ -82,9 +83,12 @@ export function OratorioTab({ module, lessonId, studentId, existingScore }: Orat
   const timerRef       = useRef<ReturnType<typeof setInterval> | null>(null)
   const accumulatedRef = useRef('')   // stable ref for onend / onerror callbacks
 
-  const supabase = createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  const supabase = useMemo(
+    () => createBrowserClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    ),
+    [] // empty deps — client is stable for the lifetime of the component
   )
 
   /* ── Browser support check (client-only) ─────────────────────── */
@@ -117,7 +121,7 @@ export function OratorioTab({ module, lessonId, studentId, existingScore }: Orat
   /* ── Save score to Supabase ─────────────────────────────────── */
   async function persistScore(finalScore: number) {
     setSaving(true)
-    await supabase.from('scores').upsert(
+    const { error } = await supabase.from('scores').upsert(
       {
         student_id:  studentId,
         lesson_id:   lessonId,
@@ -128,6 +132,10 @@ export function OratorioTab({ module, lessonId, studentId, existingScore }: Orat
       { onConflict: 'student_id,lesson_id,module_id,module_type' }
     )
     setSaving(false)
+    if (error) {
+      console.error('[OratorioTab] Failed to save score:', error)
+      toast.error('Erro ao salvar pontuação. Tente novamente.')
+    }
   }
 
   /* ── Finalize recording ─────────────────────────────────────── */
@@ -172,7 +180,22 @@ export function OratorioTab({ module, lessonId, studentId, existingScore }: Orat
     }
 
     rec.onerror = (e: SpeechRecognitionErrorData) => {
-      if (e.error === 'no-speech') return  // ignore — just silence
+      if (e.error === 'no-speech') return  // silence — just keep recording
+
+      if (e.error === 'not-allowed') {
+        // Mic permission denied — stop recording, do NOT save score, return to idle
+        if (timerRef.current) {
+          clearInterval(timerRef.current)
+          timerRef.current = null
+        }
+        recognitionRef.current?.stop()
+        accumulatedRef.current = ''
+        setUiState('idle')
+        toast.error('Permissão de microfone negada. Ative nas configurações do navegador.')
+        return
+      }
+
+      // All other errors: finalize with whatever was accumulated
       finalize(accumulatedRef.current)
     }
 
