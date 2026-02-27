@@ -35,9 +35,9 @@ const teacherNav: NavItem[] = [
 ]
 
 const studentNav: NavItem[] = [
-  { href: '/student/dashboard', label: 'Início',       icon: <LayoutDashboard size={18} /> },
-  { href: '/student/lessons',   label: 'Minhas Aulas', icon: <BookOpen size={18} /> },
-  { href: '/student/progress',  label: 'Progresso',    icon: <BarChart2 size={18} /> },
+  { href: '/student/dashboard', label: 'Início',    icon: <LayoutDashboard size={18} /> },
+  { href: '/student/lessons',   label: 'Módulos',   icon: <Layers size={18} /> },
+  { href: '/student/progress',  label: 'Progresso', icon: <BarChart2 size={18} /> },
 ]
 
 /* ── Component ──────────────────────────────────────────── */
