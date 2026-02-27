@@ -153,9 +153,9 @@ export function generateModuleContent(slide: SlideData): ModuleContent {
 export async function generateModuleContentBatch(
   slides: SlideData[],
 ): Promise<ModuleContent[]> {
-  if (process.env.ANTHROPIC_API_KEY) {
+  if (process.env.GOOGLE_AI_API_KEY) {
     try {
-      const { generateModuleContentWithAI } = await import('./ai/claude-content-generator')
+      const { generateModuleContentWithAI } = await import('./ai/gemini-content-generator')
       const results = await generateModuleContentWithAI(slides)
 
       // If AI returned fewer slides than expected, pad with rule-based fallback
