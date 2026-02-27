@@ -2,6 +2,7 @@ import { createClient }    from '@/lib/supabase/server'
 import { revalidatePath }  from 'next/cache'
 import { Eye, Plus, ToggleLeft, ToggleRight, Upload } from 'lucide-react'
 import Link from 'next/link'
+import { DeleteLessonButton } from '@/components/lessons/DeleteLessonButton'
 
 /* ── Server Action: toggle published status ─────────────────────── */
 async function togglePublish(lessonId: string, current: boolean) {
@@ -153,6 +154,11 @@ export default async function TeacherLessonsPage() {
                       }
                     </button>
                   </form>
+
+                  <DeleteLessonButton
+                    lessonId={lesson.id}
+                    lessonTitle={lesson.title}
+                  />
                 </div>
               </div>
             )
