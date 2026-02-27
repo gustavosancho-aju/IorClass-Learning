@@ -10,7 +10,7 @@ interface ProcessButtonProps {
   lessonId:    string
 }
 
-export function ProcessButton({ pptUploadId, lessonId }: ProcessButtonProps) {
+export function ProcessButton({ pptUploadId, lessonId: _lessonId }: ProcessButtonProps) {
   const [loading, setLoading]   = useState(false)
   const [done,    setDone]      = useState(false)
   const router                  = useRouter()

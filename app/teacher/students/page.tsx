@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { Users, TrendingUp, Clock, Award } from 'lucide-react'
+import { Users, TrendingUp, Award } from 'lucide-react'
 import { formatScore, getScoreLevel } from '@/lib/utils'
 
 /* ── Types ──────────────────────────────────────────────────────── */

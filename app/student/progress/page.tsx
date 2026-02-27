@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { formatScore, getScoreLevel, getModuleInfo, calcAvgScore } from '@/lib/utils'
-import { Trophy, Target, Flame, BarChart2 } from 'lucide-react'
+import { BarChart2 } from 'lucide-react'
 import Link from 'next/link'
 
 export const metadata = { title: 'Meu Progresso — Master Speaking' }

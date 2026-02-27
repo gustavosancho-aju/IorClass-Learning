@@ -1,7 +1,7 @@
 import { redirect }   from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import Link             from 'next/link'
-import { BookOpen, ChevronRight } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 
 export const metadata = { title: 'Minhas Aulas — Master Speaking' }
 

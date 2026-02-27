@@ -37,6 +37,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // ── Role check — only teachers can process PPTs ──────────────
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (profile?.role !== 'teacher') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+    // ─────────────────────────────────────────────────────────────
+
     /* ── 3. Fetch ppt_uploads record (admin — sem restrição RLS) ── */
     const { data: upload, error: uploadFetchError } = await supabaseAdmin
       .from('ppt_uploads')
