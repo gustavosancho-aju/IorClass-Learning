@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { createBrowserClient } from '@supabase/ssr'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 
@@ -151,6 +152,17 @@ export default function LoginPage() {
         {/* Magic Link */}
         <MagicLinkSection supabase={supabase} />
       </div>
+
+      {/* Link para cadastro */}
+      <p className="text-center text-white/40 text-sm mt-6">
+        Não tem conta?{' '}
+        <Link
+          href="/signup"
+          className="text-ms-gold font-bold hover:underline"
+        >
+          Cadastre-se
+        </Link>
+      </p>
 
       {/* Footer */}
       <p className="text-center text-white/25 text-xs mt-6 font-semibold">
