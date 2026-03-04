@@ -7,10 +7,12 @@ import { StudentTable } from './StudentTable'
 export interface StudentSummary {
   student_id:        string
   student_name:      string | null
+  email:             string | null
   avg_score:         number
   modules_completed: number
   last_activity:     string | null
   lesson_count:      number
+  joined_at:         string | null
 }
 
 export interface LessonRow {
@@ -26,24 +28,34 @@ export interface LessonRow {
 export default async function TeacherStudentsPage() {
   const supabase = createClient()
 
-  /* Fetch all student_performance rows, then aggregate per student */
-  const { data: rows } = await supabase
+  /* 1. Todos os alunos cadastrados — independente de ter atividade */
+  const { data: allProfiles } = await supabase
+    .from('profiles')
+    .select('id, full_name, email, created_at')
+    .eq('role', 'student')
+    .order('created_at', { ascending: false })
+
+  /* 2. Dados de desempenho (somente quem completou algum módulo) */
+  const { data: perfRows } = await supabase
     .from('student_performance')
     .select('student_id, student_name, lesson_id, avg_score, modules_completed, last_activity')
     .order('last_activity', { ascending: false })
 
-  /* Keep raw rows for drawer detail (before aggregation) */
-  const lessonRows: LessonRow[] = rows ?? []
+  /* Keep raw rows for drawer detail */
+  const lessonRows: LessonRow[] = perfRows ?? []
 
-  /* Aggregate: one entry per student */
-  const studentMap = new Map<string, StudentSummary>()
+  /* 3. Agregar desempenho por aluno */
+  const perfMap = new Map<string, {
+    avg_score:         number
+    modules_completed: number
+    last_activity:     string | null
+    lesson_count:      number
+  }>()
 
-  for (const row of rows ?? []) {
-    const existing = studentMap.get(row.student_id)
+  for (const row of perfRows ?? []) {
+    const existing = perfMap.get(row.student_id)
     if (!existing) {
-      studentMap.set(row.student_id, {
-        student_id:        row.student_id,
-        student_name:      row.student_name,
+      perfMap.set(row.student_id, {
         avg_score:         row.avg_score ?? 0,
         modules_completed: row.modules_completed ?? 0,
         last_activity:     row.last_activity,
@@ -51,23 +63,44 @@ export default async function TeacherStudentsPage() {
       })
     } else {
       const total = existing.lesson_count + 1
-      studentMap.set(row.student_id, {
-        ...existing,
+      perfMap.set(row.student_id, {
         avg_score:         (existing.avg_score * existing.lesson_count + (row.avg_score ?? 0)) / total,
         modules_completed: existing.modules_completed + (row.modules_completed ?? 0),
-        lesson_count:      total,
         last_activity:     row.last_activity ?? existing.last_activity,
+        lesson_count:      total,
       })
     }
   }
 
-  const students = Array.from(studentMap.values()).sort((a, b) =>
-    (b.last_activity ?? '').localeCompare(a.last_activity ?? '')
-  )
+  /* 4. Unir todos os perfis com desempenho (zeros para quem não tem atividade) */
+  const students: StudentSummary[] = (allProfiles ?? []).map(profile => {
+    const perf = perfMap.get(profile.id)
+    return {
+      student_id:        profile.id,
+      student_name:      profile.full_name,
+      email:             profile.email,
+      avg_score:         perf?.avg_score         ?? 0,
+      modules_completed: perf?.modules_completed ?? 0,
+      last_activity:     perf?.last_activity     ?? null,
+      lesson_count:      perf?.lesson_count      ?? 0,
+      joined_at:         profile.created_at,
+    }
+  }).sort((a, b) => {
+    /* Quem tem atividade recente aparece primeiro */
+    if (a.last_activity && b.last_activity)
+      return b.last_activity.localeCompare(a.last_activity)
+    if (a.last_activity) return -1
+    if (b.last_activity) return 1
+    /* Empate: mais recente no cadastro primeiro */
+    return (b.joined_at ?? '').localeCompare(a.joined_at ?? '')
+  })
 
   const totalStudents  = students.length
-  const classAvg       = totalStudents > 0
-    ? students.reduce((acc, s) => acc + s.avg_score, 0) / totalStudents
+  const activeStudents = students.filter(s => s.last_activity !== null).length
+  const classAvg       = activeStudents > 0
+    ? students
+        .filter(s => s.last_activity !== null)
+        .reduce((acc, s) => acc + s.avg_score, 0) / activeStudents
     : 0
 
   return (
@@ -79,7 +112,12 @@ export default async function TeacherStudentsPage() {
         </p>
         <h1 className="text-ms-dark font-black text-3xl">Alunos</h1>
         <p className="text-slate-500 text-sm mt-1 font-semibold">
-          {totalStudents} aluno{totalStudents !== 1 ? 's' : ''} com atividade registrada
+          {totalStudents} aluno{totalStudents !== 1 ? 's' : ''} cadastrado{totalStudents !== 1 ? 's' : ''}
+          {activeStudents > 0 && (
+            <span className="text-slate-400 font-medium">
+              {' '}· {activeStudents} com atividade
+            </span>
+          )}
         </p>
       </div>
 
@@ -87,14 +125,14 @@ export default async function TeacherStudentsPage() {
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
         <SummaryCard
           icon={<Users size={20} className="text-ms-medium" />}
-          label="Total de Alunos"
+          label="Total Cadastrados"
           value={String(totalStudents)}
           color="border-ms-medium/20 bg-blue-50"
         />
         <SummaryCard
           icon={<TrendingUp size={20} className="text-emerald-600" />}
           label="Média da Turma"
-          value={formatScore(classAvg)}
+          value={activeStudents > 0 ? formatScore(classAvg) : '—'}
           color="border-emerald-200 bg-emerald-50"
         />
         <SummaryCard
@@ -105,7 +143,7 @@ export default async function TeacherStudentsPage() {
         />
       </div>
 
-      {/* Student table — passes lessonRows for drawer detail */}
+      {/* Student table */}
       {students.length === 0 ? (
         <EmptyState />
       ) : (
@@ -119,7 +157,7 @@ export default async function TeacherStudentsPage() {
 function SummaryCard({
   icon, label, value, color,
 }: {
-  icon: React.ReactNode
+  icon:  React.ReactNode
   label: string
   value: string
   color: string
@@ -140,9 +178,9 @@ function EmptyState() {
   return (
     <div className="text-center py-20">
       <span className="text-6xl mb-4 block">👥</span>
-      <p className="text-ms-dark font-bold text-lg mb-2">Nenhum aluno com atividade</p>
+      <p className="text-ms-dark font-bold text-lg mb-2">Nenhum aluno cadastrado ainda</p>
       <p className="text-slate-400 text-sm font-semibold">
-        Os dados aparecem quando alunos completarem módulos nas aulas.
+        Quando um aluno criar sua conta, ele aparecerá aqui.
       </p>
     </div>
   )
