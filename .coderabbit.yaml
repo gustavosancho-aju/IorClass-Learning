@@ -1,0 +1,62 @@
+# CodeRabbit Configuration — Master Speaking LMS
+# Docs: https://docs.coderabbit.ai/configure-coderabbit
+
+language: "pt-BR"
+
+reviews:
+  profile: "assertive"
+  request_changes_workflow: true
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+
+  path_filters:
+    - "!node_modules/**"
+    - "!.next/**"
+    - "!package-lock.json"
+    - "!*.html"
+    - "!*.txt"
+    - "!*.md"
+
+  path_instructions:
+    - path: "app/api/**"
+      instructions: |
+        Verifique segurança de rotas de API: autenticação, rate limiting, validação de input,
+        tratamento de erros, exposição de dados sensíveis e uso correto do service_role key.
+
+    - path: "app/(auth)/**"
+      instructions: |
+        Verifique o fluxo de autenticação: proteção contra redirect aberto,
+        validação de formulários, mensagens de erro seguras (sem vazar info de usuários existentes),
+        e CSRF protection.
+
+    - path: "middleware.ts"
+      instructions: |
+        Verifique se todas as rotas públicas estão corretamente declaradas,
+        se o redirect de usuários autenticados está funcionando,
+        e se não há brechas de acesso não autorizado.
+
+    - path: "lib/supabase/**"
+      instructions: |
+        Verifique se o service_role key está sendo usado apenas no servidor,
+        e se o anon key está sendo usado no cliente. Nenhuma chave sensível
+        deve aparecer em código client-side.
+
+    - path: "app/teacher/**"
+      instructions: |
+        Verifique se todas as rotas de professor verificam role='teacher'
+        e se não há acesso indevido a dados de outros professores.
+
+    - path: "app/student/**"
+      instructions: |
+        Verifique se alunos só acessam aulas publicadas (is_published=true)
+        e se não há acesso a dados de outros alunos.
+
+    - path: "components/**"
+      instructions: |
+        Verifique acessibilidade (aria-labels, roles), tipagem TypeScript,
+        e se não há props desnecessariamente expostas.
+
+chat:
+  auto_reply: true
