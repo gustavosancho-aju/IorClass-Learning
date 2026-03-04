@@ -1,14 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { X } from 'lucide-react'
+import { X, Mail, Calendar } from 'lucide-react'
 import { formatScore, getScoreLevel } from '@/lib/utils'
 import { EmptyState } from '@/components/ui/EmptyState'
 import type { StudentSummary, LessonRow } from './page'
 
 /* ── LastActivity helper (client-side) ─────────────────────────── */
 function LastActivity({ date }: { date: string | null }) {
-  if (!date) return <span className="text-slate-300">—</span>
+  if (!date) return <span className="text-slate-300 italic text-xs">Sem atividade</span>
 
   const d    = new Date(date)
   const now  = new Date()
@@ -33,6 +33,7 @@ export function StudentTable({
 
   const selectedStudent = students.find(s => s.student_id === selectedId) ?? null
   const selectedLessons = lessonRows.filter(r => r.student_id === selectedId)
+  const hasActivity     = selectedStudent?.last_activity !== null
 
   return (
     <>
@@ -51,7 +52,9 @@ export function StudentTable({
         {/* Rows */}
         <div className="divide-y divide-slate-100">
           {students.map(student => {
-            const level = getScoreLevel(student.avg_score)
+            const level      = getScoreLevel(student.avg_score)
+            const noActivity = student.last_activity === null
+
             return (
               <div
                 key={student.student_id}
@@ -60,24 +63,24 @@ export function StudentTable({
                            items-center hover:bg-slate-50/70 transition-colors
                            cursor-pointer"
               >
-                {/* Name + ID */}
+                {/* Name + e-mail */}
                 <div className="min-w-0">
                   <p className="font-bold text-ms-dark text-sm truncate">
                     {student.student_name ?? 'Aluno sem nome'}
                   </p>
-                  <p className="text-slate-400 text-xs font-mono mt-0.5">
-                    {student.student_id.slice(0, 8)}…
+                  <p className="text-slate-400 text-xs mt-0.5 truncate">
+                    {student.email ?? student.student_id.slice(0, 8) + '…'}
                   </p>
                 </div>
 
                 {/* Modules */}
                 <span className="text-sm font-bold text-slate-500 text-right">
-                  {student.modules_completed}
+                  {noActivity ? <span className="text-slate-300">—</span> : student.modules_completed}
                 </span>
 
                 {/* Avg score */}
-                <span className={`text-sm font-black text-right ${level.color}`}>
-                  {formatScore(student.avg_score)}
+                <span className={`text-sm font-black text-right ${noActivity ? 'text-slate-300' : level.color}`}>
+                  {noActivity ? '—' : formatScore(student.avg_score)}
                 </span>
 
                 {/* Last activity */}
@@ -109,7 +112,7 @@ export function StudentTable({
             <div className="flex items-center justify-between p-5 border-b border-slate-200">
               <div>
                 <p className="text-xs text-slate-400 uppercase tracking-wide font-bold">
-                  Progresso do aluno
+                  {hasActivity ? 'Progresso do aluno' : 'Aluno cadastrado'}
                 </p>
                 <h2 className="text-lg font-black text-ms-dark">
                   {selectedStudent?.student_name ?? 'Aluno'}
@@ -125,6 +128,29 @@ export function StudentTable({
               </button>
             </div>
 
+            {/* Info do aluno */}
+            <div className="px-5 pt-4 pb-2 space-y-2 border-b border-slate-100">
+              {selectedStudent?.email && (
+                <div className="flex items-center gap-2 text-sm text-slate-500">
+                  <Mail size={14} className="text-slate-400 shrink-0" />
+                  <span className="truncate">{selectedStudent.email}</span>
+                </div>
+              )}
+              {selectedStudent?.joined_at && (
+                <div className="flex items-center gap-2 text-sm text-slate-500">
+                  <Calendar size={14} className="text-slate-400 shrink-0" />
+                  <span>
+                    Cadastro em{' '}
+                    {new Date(selectedStudent.joined_at).toLocaleDateString('pt-BR', {
+                      day:   '2-digit',
+                      month: 'long',
+                      year:  'numeric',
+                    })}
+                  </span>
+                </div>
+              )}
+            </div>
+
             {/* Per-lesson breakdown */}
             <div className="p-5 space-y-3">
               <p className="text-xs text-slate-400 uppercase font-bold tracking-wide">
@@ -133,7 +159,7 @@ export function StudentTable({
               {selectedLessons.length === 0 ? (
                 <EmptyState
                   illustration="activity"
-                  title="Nenhuma aula"
+                  title="Nenhuma aula iniciada"
                   description="Este aluno ainda não completou nenhuma atividade"
                   className="py-6"
                 />
