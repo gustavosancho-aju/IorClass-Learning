@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
 import { createBrowserClient }   from '@supabase/ssr'
-import { ChevronLeft, ChevronRight, Volume2, VolumeX, Loader2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import type { Database }     from '@/lib/supabase/types'
 import type { LessonModule } from '../types'
 
@@ -33,63 +33,6 @@ export function ResumoTab({
   existingScores,
 }: ResumoTabProps) {
   const resumo = module.content_json?.resumo ?? { text: '', bullets: [] }
-
-  /* ── TTS state ─────────────────────────────────────────────── */
-  const [isPlaying,      setIsPlaying]      = useState(false)
-  const [isFetchingAudio, setIsFetchingAudio] = useState(false)
-
-  /** Stop any active audio (browser or Eleven Labs). */
-  const [audioRef] = useState<{ current: HTMLAudioElement | null }>({ current: null })
-
-  function stopAudio() {
-    window.speechSynthesis.cancel()
-    if (audioRef.current) {
-      audioRef.current.pause()
-      audioRef.current = null
-    }
-    setIsPlaying(false)
-  }
-
-  const speak = useCallback(async () => {
-    if (isPlaying) { stopAudio(); return }
-    if (isFetchingAudio) return  // Prevent double-click
-
-    const text = (resumo.text || resumo.bullets.join('. ')).slice(0, 1000)
-    setIsFetchingAudio(true)  // Show loading state
-
-    try {
-      const res = await fetch('/api/tts', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ text }),
-      })
-
-      setIsFetchingAudio(false)  // Loading done (success)
-
-      const contentType = res.headers.get('Content-Type') ?? ''
-      if (contentType.includes('audio/mpeg')) {
-        const blob = await res.blob()
-        const url  = URL.createObjectURL(blob)
-        const audio = new Audio(url)
-        audioRef.current = audio
-        audio.onended = () => setIsPlaying(false)
-        audio.play()
-        setIsPlaying(true)
-        return
-      }
-    } catch {
-      setIsFetchingAudio(false)  // Loading done (error)
-    }
-
-    // Fallback: browser Web Speech API
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang  = 'en-US'
-    utterance.rate  = 0.9
-    utterance.onend = () => setIsPlaying(false)
-    window.speechSynthesis.speak(utterance)
-    setIsPlaying(true)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPlaying, isFetchingAudio, resumo])
 
   /* ── Read tracking + score upsert ─────────────────────────── */
   const [readSlides, setReadSlides] = useState<Set<number>>(
@@ -167,28 +110,6 @@ export function ResumoTab({
           ))}
         </ul>
       )}
-
-      {/* TTS button */}
-      <button
-        onClick={speak}
-        disabled={isFetchingAudio}
-        className={[
-          'inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all',
-          isFetchingAudio
-            ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-            : isPlaying
-              ? 'bg-ms-medium text-white'
-              : 'bg-ms-light text-ms-dark hover:bg-ms-medium/20',
-        ].join(' ')}
-      >
-        {isFetchingAudio ? (
-          <><Loader2 size={16} className="animate-spin" />Carregando...</>
-        ) : isPlaying ? (
-          <><VolumeX size={16} />Parar</>
-        ) : (
-          <><Volume2 size={16} />Ouvir</>
-        )}
-      </button>
 
       {/* Navigation */}
       <div className="flex items-center justify-between pt-2 border-t border-slate-100">
