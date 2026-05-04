@@ -6,7 +6,7 @@ import { createBrowserClient } from '@supabase/ssr'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 
 function getAuthRedirectUrl() {
-  const configuredBase = process.env.NEXT_PUBLIC_APP_URL?.trim()
+  const configuredBase = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/, '')
   const currentOrigin = window.location.origin
   const isLocalConfiguredBase = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(
     configuredBase ?? ''
@@ -18,7 +18,7 @@ function getAuthRedirectUrl() {
     (!isLocalConfiguredBase || isLocalOrigin)
 
   const base = shouldUseConfiguredBase
-    ? configuredBase.replace(/\/$/, '')
+    ? configuredBase
     : currentOrigin
 
   return `${base}/auth/callback`
