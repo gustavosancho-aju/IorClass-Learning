@@ -7,9 +7,19 @@ import { Eye, EyeOff, Loader2 } from 'lucide-react'
 
 function getAuthRedirectUrl() {
   const configuredBase = process.env.NEXT_PUBLIC_APP_URL?.trim()
-  const base = configuredBase && /^https?:\/\//.test(configuredBase)
+  const currentOrigin = window.location.origin
+  const isLocalConfiguredBase = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(
+    configuredBase ?? ''
+  )
+  const isLocalOrigin = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(currentOrigin)
+  const shouldUseConfiguredBase =
+    configuredBase &&
+    /^https?:\/\//.test(configuredBase) &&
+    (!isLocalConfiguredBase || isLocalOrigin)
+
+  const base = shouldUseConfiguredBase
     ? configuredBase.replace(/\/$/, '')
-    : window.location.origin
+    : currentOrigin
 
   return `${base}/auth/callback`
 }
