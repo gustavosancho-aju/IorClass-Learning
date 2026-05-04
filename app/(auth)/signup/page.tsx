@@ -5,6 +5,15 @@ import Link from 'next/link'
 import { createBrowserClient } from '@supabase/ssr'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 
+function getAuthRedirectUrl() {
+  const configuredBase = process.env.NEXT_PUBLIC_APP_URL?.trim()
+  const base = configuredBase && /^https?:\/\//.test(configuredBase)
+    ? configuredBase.replace(/\/$/, '')
+    : window.location.origin
+
+  return `${base}/auth/callback`
+}
+
 export default function SignupPage() {
   const [fullName, setFullName]         = useState('')
   const [email, setEmail]               = useState('')
@@ -37,16 +46,20 @@ export default function SignupPage() {
 
     setLoading(true)
 
+    const redirectUrl = getAuthRedirectUrl()
+    const options = {
+      data: {
+        role: 'student',       // lido pelo trigger handle_new_user()
+        full_name: fullName,   // lido pelo trigger handle_new_user()
+      },
+      emailRedirectTo: redirectUrl,
+      redirectTo: redirectUrl,
+    }
+
     const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: {
-          role: 'student',       // lido pelo trigger handle_new_user()
-          full_name: fullName,   // lido pelo trigger handle_new_user()
-        },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
+      options,
     })
 
     setLoading(false)
@@ -55,8 +68,10 @@ export default function SignupPage() {
       const msg = signUpError.message.toLowerCase()
       if (msg.includes('user already registered') || msg.includes('already registered')) {
         setError('Este e-mail já está cadastrado.')
+      } else if (msg.includes('rate limit') || msg.includes('too many')) {
+        setError('Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.')
       } else {
-        setError('Erro ao criar conta. Tente novamente.')
+        setError(`Erro ao criar conta: ${signUpError.message}`)
       }
       return
     }

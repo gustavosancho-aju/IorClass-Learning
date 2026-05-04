@@ -5,6 +5,15 @@ import Link from 'next/link'
 import { createBrowserClient } from '@supabase/ssr'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 
+function getAuthRedirectUrl() {
+  const configuredBase = process.env.NEXT_PUBLIC_APP_URL?.trim()
+  const base = configuredBase && /^https?:\/\//.test(configuredBase)
+    ? configuredBase.replace(/\/$/, '')
+    : window.location.origin
+
+  return `${base}/auth/callback`
+}
+
 export default function LoginPage() {
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
@@ -177,16 +186,37 @@ function MagicLinkSection({ supabase }: { supabase: ReturnType<typeof createBrow
   const [email, setEmail]   = useState('')
   const [sent, setSent]     = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError]   = useState<string | null>(null)
 
   async function handleMagicLink(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-    await supabase.auth.signInWithOtp({
+    setError(null)
+
+    const redirectUrl = getAuthRedirectUrl()
+    const options = {
+      emailRedirectTo: redirectUrl,
+      redirectTo: redirectUrl,
+    }
+
+    const { error: signInError } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      options,
     })
-    setSent(true)
+
     setLoading(false)
+
+    if (signInError) {
+      const message = signInError.message.toLowerCase()
+      setError(
+        message.includes('rate limit') || message.includes('too many')
+          ? 'Muitas tentativas. Aguarde alguns minutos antes de solicitar outro link.'
+          : 'Não foi possível enviar o magic link. Tente novamente.'
+      )
+      return
+    }
+
+    setSent(true)
   }
 
   if (sent) {
@@ -214,6 +244,11 @@ function MagicLinkSection({ supabase }: { supabase: ReturnType<typeof createBrow
                    focus:outline-none focus:ring-2 focus:ring-ms-gold/60
                    focus:border-ms-gold transition-all duration-200"
       />
+      {error && (
+        <div className="bg-red-500/15 border border-red-400/30 rounded-xl px-4 py-3">
+          <p className="text-red-300 text-sm font-semibold">{error}</p>
+        </div>
+      )}
       <button
         type="submit"
         disabled={loading || !email}

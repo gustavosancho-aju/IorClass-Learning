@@ -35,16 +35,33 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Usuário autenticado tentando acessar login ou signup
-  if (user && (pathname === '/login' || pathname === '/signup')) {
-    return NextResponse.redirect(new URL('/', request.url))
-  }
-
-  // ─── Proteção por role via JWT (zero DB query) ────────────
-  // user_metadata.role é definido no signup e embutido no JWT.
-  // Mesmo campo usado pelos RLS policies: auth.jwt() -> 'user_metadata' ->> 'role'
+  // ─── Proteção por role ───────────────────────────────────
+  // Preferimos user_metadata.role do JWT; se não existir, usamos profiles.role.
   if (user) {
-    const role = user.user_metadata?.role as 'teacher' | 'student' | undefined
+    let role = user.user_metadata?.role as 'teacher' | 'student' | undefined
+
+    if (!role) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      role = profile?.role
+    }
+
+    if (!role) {
+      if (pathname === '/login') {
+        return supabaseResponse
+      }
+
+      return NextResponse.redirect(new URL('/login?error=role_not_found', request.url))
+    }
+
+    // Usuário autenticado tentando acessar login ou signup
+    if (pathname === '/login' || pathname === '/signup') {
+      return NextResponse.redirect(new URL('/', request.url))
+    }
 
     // Teacher tentando acessar área de aluno
     if (role === 'teacher' && pathname.startsWith('/student')) {

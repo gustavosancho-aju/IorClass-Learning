@@ -6,7 +6,6 @@ import { createClient } from '@/lib/supabase/server'
 export interface CreatePptUploadInput {
   lessonId:         string
   lessonTitle:      string
-  teacherId:        string
   storagePath:      string
   originalFilename: string
   courseModuleId?:  string | null
@@ -28,9 +27,40 @@ export interface CreatePptUploadResult {
 export async function createPptUploadRecord(
   input: CreatePptUploadInput
 ): Promise<CreatePptUploadResult> {
-  const { lessonId, lessonTitle, teacherId, storagePath, originalFilename, courseModuleId } = input
+  const { lessonId, lessonTitle, storagePath, originalFilename, courseModuleId } = input
 
   const supabase = createClient()
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { error: 'Usuário não autenticado. Faça login novamente.' }
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError) {
+    return { error: `Falha ao validar permissões: ${profileError.message}` }
+  }
+
+  if (profile?.role !== 'teacher') {
+    return { error: 'Apenas professores podem registrar uploads de aulas.' }
+  }
+
+  if (!lessonId || !lessonTitle || !storagePath || !originalFilename) {
+    return { error: 'Dados obrigatórios do upload não foram informados.' }
+  }
+
+  if (!storagePath.startsWith(`${user.id}/`)) {
+    return { error: 'Caminho de armazenamento inválido para este usuário.' }
+  }
 
   /* 1 ── Create lesson record with the pre-generated UUID */
   const { error: lessonError } = await supabase
@@ -38,7 +68,7 @@ export async function createPptUploadRecord(
     .insert({
       id:               lessonId,
       title:            lessonTitle,
-      created_by:       teacherId,
+      created_by:       user.id,
       course_module_id: courseModuleId ?? null,
     })
 
@@ -54,7 +84,7 @@ export async function createPptUploadRecord(
       storage_path: storagePath,
       lesson_id:    lessonId,
       status:       'processing',
-      uploaded_by:  teacherId,
+      uploaded_by:  user.id,
     })
 
   if (uploadError) {

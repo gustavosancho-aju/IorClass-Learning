@@ -123,7 +123,6 @@ export function PptDropzone({ teacherId, courseModules }: PptDropzoneProps) {
       const result = await createPptUploadRecord({
         lessonId,
         lessonTitle:      lessonTitle.trim(),
-        teacherId,
         storagePath,
         originalFilename: file.name,
         courseModuleId:   selectedModuleId || undefined,
