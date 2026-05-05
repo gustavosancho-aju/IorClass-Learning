@@ -50,20 +50,6 @@ export async function POST(request: Request) {
     }
     // ─────────────────────────────────────────────────────────────
 
-    // ── Rate limit — 5 process jobs per hour per user ─────────────
-    const rl = await checkRateLimit(user.id, {
-      endpoint:      'process-ppt',
-      maxRequests:   5,
-      windowMinutes: 60,
-    })
-    if (!rl.allowed) {
-      return NextResponse.json(
-        { error: 'Rate limit exceeded. Try again later.' },
-        { status: 429 }
-      )
-    }
-    // ─────────────────────────────────────────────────────────────
-
     /* ── 3. Fetch ppt_uploads record (admin — sem restrição RLS) ── */
     const { data: upload, error: uploadFetchError } = await supabaseAdmin
       .from('ppt_uploads')
@@ -77,6 +63,59 @@ export async function POST(request: Request) {
     if (!upload.lesson_id) {
       return NextResponse.json({ error: 'Upload has no associated lesson' }, { status: 400 })
     }
+
+    if (upload.uploaded_by !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    const { data: lesson, error: lessonFetchError } = await supabaseAdmin
+      .from('lessons')
+      .select('id, created_by')
+      .eq('id', upload.lesson_id)
+      .single()
+
+    if (lessonFetchError || !lesson) {
+      return NextResponse.json({ error: 'Associated lesson not found' }, { status: 404 })
+    }
+
+    if (lesson.created_by !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    const { data: existingModules, error: existingModulesError } = await supabaseAdmin
+      .from('modules')
+      .select('*')
+      .eq('lesson_id', upload.lesson_id)
+      .order('order_index')
+
+    if (existingModulesError) {
+      return NextResponse.json(
+        { error: `Failed to check existing modules: ${existingModulesError.message}` },
+        { status: 500 }
+      )
+    }
+
+    if ((existingModules?.length ?? 0) > 0) {
+      return NextResponse.json({
+        lessonId: upload.lesson_id,
+        modules: existingModules,
+        alreadyProcessed: true,
+      })
+    }
+
+    // ── Rate limit — 5 process jobs per hour per user ─────────────
+    const rl = await checkRateLimit(user.id, {
+      endpoint:      'process-ppt',
+      maxRequests:   5,
+      windowMinutes: 60,
+    })
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Try again later.' },
+        { status: 429 }
+      )
+    }
+    // ─────────────────────────────────────────────────────────────
 
     /* ── 4. Download file from Supabase Storage (admin) ─────────── */
     const { data: fileData, error: downloadError } = await supabaseAdmin.storage
@@ -112,6 +151,11 @@ export async function POST(request: Request) {
     }
 
     if (slides.length === 0) {
+      await supabaseAdmin
+        .from('ppt_uploads')
+        .update({ status: 'error' })
+        .eq('id', pptUploadId)
+
       return NextResponse.json({ error: 'No slides found in the PPTX file' }, { status: 422 })
     }
 
@@ -121,6 +165,11 @@ export async function POST(request: Request) {
       contents = await generateModuleContentBatch(slides)
     } catch (genErr) {
       console.error('[process-ppt] Content generation failed:', genErr)
+      await supabaseAdmin
+        .from('ppt_uploads')
+        .update({ status: 'error' })
+        .eq('id', pptUploadId)
+
       return NextResponse.json(
         { error: 'Failed to generate module content' },
         { status: 500 },
@@ -144,6 +193,11 @@ export async function POST(request: Request) {
       .select()
 
     if (insertError) {
+      await supabaseAdmin
+        .from('ppt_uploads')
+        .update({ status: 'error' })
+        .eq('id', pptUploadId)
+
       return NextResponse.json(
         { error: `Failed to save modules: ${insertError.message}` },
         { status: 500 }

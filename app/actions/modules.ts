@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient }   from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 
 /* ── Types ──────────────────────────────────────────────────────── */
@@ -36,6 +37,16 @@ export async function createCourseModule(
     return { error: 'Não autorizado. Faça login novamente.' }
   }
 
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError || profile?.role !== 'teacher') {
+    return { error: 'Apenas professores podem criar módulos.' }
+  }
+
   /* Validate title */
   const trimmedTitle = title?.trim() ?? ''
   if (trimmedTitle.length === 0) {
@@ -54,9 +65,10 @@ export async function createCourseModule(
     .limit(1)
 
   const nextIndex = (existing?.[0]?.order_index ?? -1) + 1
+  const supabaseAdmin = createAdminClient()
 
   /* Insert */
-  const { data, error: insertError } = await supabase
+  const { data, error: insertError } = await supabaseAdmin
     .from('course_modules')
     .insert({
       title:       trimmedTitle,
@@ -94,6 +106,16 @@ export async function deleteCourseModule(
     return { error: 'Não autorizado. Faça login novamente.' }
   }
 
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError || profile?.role !== 'teacher') {
+    return { error: 'Apenas professores podem excluir módulos.' }
+  }
+
   /* Ownership check */
   const { data: module, error: fetchError } = await supabase
     .from('course_modules')
@@ -110,7 +132,8 @@ export async function deleteCourseModule(
   }
 
   /* Delete — lessons.course_module_id becomes NULL via ON DELETE SET NULL */
-  const { error: deleteError } = await supabase
+  const supabaseAdmin = createAdminClient()
+  const { error: deleteError } = await supabaseAdmin
     .from('course_modules')
     .delete()
     .eq('id', moduleId)

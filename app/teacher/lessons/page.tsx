@@ -16,11 +16,20 @@ async function togglePublish(lessonId: string, current: boolean) {
   // Ownership check — only the lesson creator can toggle
   const { data: lesson } = await supabase
     .from('lessons')
-    .select('created_by')
+    .select('created_by, modules(count)')
     .eq('id', lessonId)
     .single()
 
   if (lesson?.created_by !== user.id) throw new Error('Forbidden')
+
+  if (!current) {
+    type ModuleCountRow = { count: number }
+    const moduleCount = (lesson.modules as unknown as ModuleCountRow[])?.[0]?.count ?? 0
+
+    if (moduleCount === 0) {
+      throw new Error('A aula precisa ter slides processados antes de ser publicada.')
+    }
+  }
 
   await supabase
     .from('lessons')
@@ -141,10 +150,18 @@ export default async function TeacherLessonsPage() {
                   <form action={actionFn}>
                     <button
                       type="submit"
+                      disabled={!lesson.is_published && moduleCount === 0}
+                      title={
+                        !lesson.is_published && moduleCount === 0
+                          ? 'Processe os slides antes de publicar'
+                          : undefined
+                      }
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg
                                  text-xs font-bold border transition-colors ${
                         lesson.is_published
                           ? 'text-amber-600 border-amber-200 hover:bg-amber-50'
+                          : moduleCount === 0
+                          ? 'text-slate-400 border-slate-200 bg-slate-50 cursor-not-allowed'
                           : 'text-emerald-600 border-emerald-200 hover:bg-emerald-50'
                       }`}
                     >

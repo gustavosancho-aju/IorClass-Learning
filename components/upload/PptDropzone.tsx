@@ -128,7 +128,10 @@ export function PptDropzone({ teacherId, courseModules }: PptDropzoneProps) {
         courseModuleId:   selectedModuleId || undefined,
       })
 
-      if (result.error) throw new Error(result.error)
+      if (result.error) {
+        await supabase.storage.from('ppt-uploads').remove([storagePath])
+        throw new Error(result.error)
+      }
 
       setProgress(100)
       setState('done')

@@ -36,7 +36,18 @@ export async function deleteLesson(
   }
 
   /* Role check */
-  const role = user.user_metadata?.role as string | undefined
+  let role = user.user_metadata?.role as string | undefined
+
+  if (!role) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    role = profile?.role
+  }
+
   if (role !== 'teacher') {
     return { error: 'Forbidden.' }
   }
