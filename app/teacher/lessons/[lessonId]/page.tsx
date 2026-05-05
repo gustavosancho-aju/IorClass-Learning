@@ -4,6 +4,9 @@ import Link from 'next/link'
 import { ArrowLeft, CheckCircle2, Loader2, AlertCircle, BookOpen, PlayCircle } from 'lucide-react'
 import { ProcessButton } from './ProcessButton'
 import { DeleteLessonButton } from '@/components/lessons/DeleteLessonButton'
+import { ModuleReviewEditor } from '@/components/lessons/ModuleReviewEditor'
+import type { ModuleContent } from '@/lib/content-generator'
+import { sanitizeModuleContent } from '@/lib/module-content-validation'
 
 interface Props {
   params: { lessonId: string }
@@ -26,6 +29,15 @@ export default async function LessonDetailPage({ params }: Props) {
   const lesson  = lessonRes.data
   const upload  = uploadRes.data
   const modules = modulesRes.data ?? []
+  const reviewModules = modules.map(module => ({
+    id: module.id,
+    title: module.title,
+    order_index: module.order_index,
+    content_json: sanitizeModuleContent(module.content_json as unknown as ModuleContent, {
+      title: module.title,
+      slideNumber: module.order_index + 1,
+    }),
+  }))
 
   /* ── Upload status display helpers ─────────────────────────── */
   const statusConfig = {
@@ -143,6 +155,8 @@ export default async function LessonDetailPage({ params }: Props) {
               redirectAfter
             />
           </div>
+
+          <ModuleReviewEditor modules={reviewModules} />
         </div>
       ) : (
         !upload?.status && (

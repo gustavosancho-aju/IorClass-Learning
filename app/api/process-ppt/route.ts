@@ -15,6 +15,7 @@ import { createClient }          from '@/lib/supabase/server'
 import { createAdminClient }     from '@/lib/supabase/admin'
 import { parsePptx }             from '@/lib/ppt-parser'
 import { generateModuleContentBatch } from '@/lib/content-generator'
+import { sanitizeModuleContent }  from '@/lib/module-content-validation'
 import { checkRateLimit }        from '@/lib/rate-limit'
 
 // Standard Node.js runtime (needs Buffer + JSZip — no edge compat)
@@ -177,11 +178,14 @@ export async function POST(request: Request) {
     }
 
     const moduleInserts = slides.map((slide, idx) => {
-      const content = contents[idx]
+      const content = sanitizeModuleContent(contents[idx], {
+        title: slide.title,
+        slideNumber: slide.slideNumber,
+      })
       return {
         lesson_id:    upload.lesson_id!,
         type:         'summary' as const,
-        title:        content?.title ?? slide.title,
+        title:        content.title,
         content_json: (content ?? {}) as unknown as Record<string, unknown>,
         order_index:  idx,
       }
